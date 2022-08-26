@@ -1,5 +1,6 @@
 # residuated_lattices
 Check if a given algebra of type (2,2,2,2,0,0) is a residuated lattice (i.e. satisfies the axioms).
+
 Usage: python check.py <algebra>
 
 Getting Started: Try one of the examples, packaged with this program. After downloading the directory,
@@ -12,7 +13,7 @@ For details, see the comment lines in that file. If you edit the file, changing 
 and run the program again, it will confirm that all axioms are now satisfied. The other example files (example1_9.py, ...)
 have the same structure; you can use any of these as a template, to define your own algebras.
 
-The main file is check.py. It contains the 13 axioms that we use to define residuated lattices:
+Axioms: The file check.py contains the 13 axioms that we use to define residuated lattices:
 residuated lattices are bounded lattices, equipped with an additional multiplication which forms an ordered monoid
 (with the lattice maximum "1" as the neutral element), and also equipped with an arrow operation,
 such that multiplication and arrow operation, for any fixed first operand x, form an adjoint pair
