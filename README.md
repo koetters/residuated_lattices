@@ -4,8 +4,7 @@ Check if a given algebra of type (2,2,2,2,0,0) is a residuated lattice (i.e. sat
 Usage: python check.py \<algebra to be checked\>
 
 Getting Started: Try one of the examples, packaged with this program. After downloading the directory,
-start a command line shell, move into the directory, and type "python check.py example1_8"
-(using Python 2; the program will soon be converted to Python 3).
+start a command line shell, move into the directory, and type "python check.py example1_8".
 If all goes well, the program should print stuff on the command line, about axioms being failed, and then end.
 You can find the algebra, that has just been checked, in the file example1_8.py (note that the ".py" suffix
 was omitted when you ran the command). Open the file in a text editor. The file contains the definition of the algebra.
