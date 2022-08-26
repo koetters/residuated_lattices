@@ -1,7 +1,7 @@
 # residuated_lattices
 Check if a given algebra of type (2,2,2,2,0,0) is a residuated lattice (i.e. satisfies the axioms).
 
-Usage: python check.py <algebra>
+Usage: python check.py \<algebra\>
 
 Getting Started: Try one of the examples, packaged with this program. After downloading the directory,
 start a command line shell, move into the directory, and type "python check.py example1_8"
