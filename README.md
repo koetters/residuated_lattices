@@ -20,3 +20,7 @@ such that multiplication and arrow operation, for any fixed first operand x, for
 One word of caution: There seems to be no established consensus on the axioms defining a residuated lattice;
 other people may use a somewhat different set of axioms.
 
+Extra feature: compute (f,g)-derivations.
+Usage: python deriv.py \<algebra\>
+This will list the endomorphism of the algebra. Choose f and g from this list.
+The (f,g)-derivations are then computed.
