@@ -157,8 +157,106 @@ class UpperTriangularMatrix:
 
   def get_multiplications(self):
     mg = MultiplicationGenerator(self)
-    mg.run()
-    return mg.multiplications
+    return mg.run()
+#     mg.run()
+#    return mg.multiplications
+
+class TableBuilder:
+  def __init__(self,lattice):
+    n = lattice.n
+    self.lattice = lattice
+    supremum = lattice.supremum_operation()
+    infimum = lattice.infimum_operation()
+    self.sup = supremum.table
+    self.inf = infimum.table
+    self.ideal = [None for _ in range(n)]
+    self.ideal[0] = {0}
+    for i in range(1,n):
+      self.ideal[i] = self.ideal[i-1] | {self.sup[i][j] for j in range(0,i)}
+#    self.delta = [None for _ in range(n)]
+#    self.delta[0] = {0}
+#    for i in range(1,n):
+#      self.delta[i] = self.ideal[i] - self.ideal[i-1]
+    self.mult = [n*[None] for _ in range(n)]
+    for i in range(n):
+      self.mult[0][i] = 0
+      self.mult[i][0] = 0
+      self.mult[n-1][i] = i
+      self.mult[i][n-1] = i
+    self.results = []
+
+  def build_table(self):
+
+    n = self.lattice.n
+    pos = None
+    for k,i in ((k0,i0) for k0 in range(n) for i0 in range(k0+1)):
+      if self.mult[k][i] == None:
+        pos = (k,i)
+        break
+
+    if pos == None:
+      m = self.mult
+      s = self.sup
+      for a in range(n):
+        for b in range(n):
+          for c in range(n):
+            assert m[m[a][b]][c] == m[a][m[b][c]]
+            assert m[a][s[b][c]] == s[m[a][b]][m[a][c]]
+      copy = [n*[None] for _ in range(n)]
+      for r in range(n):
+        for s in range(n):
+          copy[r][s] = self.mult[r][s]
+      self.results.append(copy)
+      return
+
+    k,i = pos
+
+#    print("pos=(%s,%s)" % (k,i))
+#    print("table:")
+#    print(self.mult)
+
+    below_k = self.lattice.lower_neighbor(k)
+    below_i = self.lattice.lower_neighbor(i)
+    lbound = self.sup[self.mult[k][below_i]][self.mult[below_k][i]]
+    ubound = self.inf[k][i]
+
+#    print("next pos (%s,%s) in (%s,%s)" % (k,i,lbound,ubound))
+    for a in range(lbound,ubound+1):
+      if not (self.lattice.leq(lbound,a) and self.lattice.leq(a,ubound)):
+        continue
+
+      undo = [(k,i)]
+      self.mult[k][i] = a
+      self.mult[i][k] = a
+#      print("trying mult(%s,%s)=%s from (%s,%s)" % (k,i,a,lbound,ubound))
+#      print(self.mult)
+
+      valid = True
+
+      for l,j in ((l0,j0) for l0 in self.ideal[k] for j0 in self.ideal[i]):
+        x = self.sup[k][l]
+        y = self.sup[i][j]
+        if self.mult[x][y] == None:
+          self.mult[x][y] = self.sup[self.sup[a][self.mult[k][j]]][self.sup[self.mult[l][i]][self.mult[l][j]]]
+          self.mult[y][x] = self.mult[x][y]
+          undo.append((x,y))
+        else:
+          if self.mult[x][y] != self.sup[self.sup[a][self.mult[k][j]]][self.sup[self.mult[l][i]][self.mult[l][j]]]:
+            valid = False
+            break
+
+      if valid:
+        for j in range(k):
+          if self.mult[self.mult[k][i]][j] != self.mult[k][self.mult[i][j]]:
+            valid = False
+            break
+
+      if valid:
+        self.build_table()
+
+      for x,y in undo:
+        self.mult[x][y] = None
+        self.mult[y][x] = None
 
 class MultiplicationGenerator:
 
@@ -179,7 +277,8 @@ class MultiplicationGenerator:
         continue
       new_elements = []
       new_generators = []
-      for j in range(i):
+      s = subsemilattice.copy()
+      for j in s:
         k = self.sup.table[i][j]
         if k not in subsemilattice:
           new_elements.append(k)
@@ -204,7 +303,7 @@ class MultiplicationGenerator:
       mult.table[i][0] = 0
       mult.table[n-1][i] = i
       mult.table[i][n-1] = i
-    self.fill_table(mult,0,0)
+    return self.fill_table(mult,0,0)
 
   def fill_table(self,mult,i0,j0):
 
@@ -287,23 +386,27 @@ class MultiplicationGenerator:
           continue
 
         if nextpos == None: # this means that multiplication is totally defined
-#          self.multiplications[0] = [extmult]
-          extprofile = self.get_extended_profile(extmult)
-          key = self.get_hash(extprofile)
-          if key not in self.multiplications:
-            self.multiplications[key] = [extmult]
-          else:
-            lst = self.multiplications[key]
-            unknown = True
-            for m in lst:
-              if self.is_automorphic_image(extmult,m):
-                unknown = False
-                break
-            if unknown:
-              lst.append(extmult)
+          return True
+#          extprofile = self.get_extended_profile(extmult)
+#          key = self.get_hash(extprofile)
+#          if key not in self.multiplications:
+#            self.multiplications[key] = [extmult]
+#          else:
+#            lst = self.multiplications[key]
+#            unknown = True
+#            for m in lst:
+#              if self.is_automorphic_image(extmult,m):
+#                unknown = False
+#                break
+#            if unknown:
+#              lst.append(extmult)
 
         else:
-          self.fill_table(extmult,nextpos[0],nextpos[1])
+          success = self.fill_table(extmult,nextpos[0],nextpos[1])
+          if success:
+            return True
+
+    return False
 
   def get_extended_profile(self,mult):
     n = self.lattice.n
@@ -461,12 +564,26 @@ class LatticeGenerator:
 
   def build_residuated(self,k):
     count = 0
+#    tb = TableBuilder(lattice)
+#    tb.build_table()
+#    for m in tb.results:
+#      print(m)
+#    mlst = lattice.get_multiplications()
+#    for key,lst in mlst.items():
+#      count += len(lst)
+    prefix = Path("reducts") / str(k)
+    prefix.mkdir(parents=True)
     hashtable = self.levels[k]
     for key,lst in hashtable.items():
       for lattice in lst:
         mlst = lattice.get_multiplications()
-        for key,lst in mlst.items():
-          count += len(lst)
+        if mlst:
+          count += 1
+          p = prefix / str(count)
+          with p.open(mode='wb') as f:
+            pickle.dump(lattice,f)
+#        for key,lst in mlst.items():
+#          count += len(lst)
     print(count)
 
 #n = 12
@@ -485,7 +602,7 @@ class LatticeGenerator:
 #print("Linear Lattices: %s" % count)
 #print("Memory Used: %s" % sys.getsizeof(mdict))
 
-n = 10
+n = 4
 start_time = time.time()
 lit = LatticeGenerator()
 lit.load_level(n)
