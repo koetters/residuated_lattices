@@ -28,6 +28,7 @@ class UpperTriangularMatrix:
       self._relation[0][i] = 1
       self._relation[i][n-1] = 1
     self._profile = None
+    self._multiplications = None
 
   def __str__(self):
     return str(self._relation)
@@ -157,9 +158,10 @@ class UpperTriangularMatrix:
 
   def get_multiplications(self):
     mg = MultiplicationGenerator(self)
-    return mg.run()
-#     mg.run()
-#    return mg.multiplications
+#    return mg.run()
+    mg.run()
+    self._multiplications = mg.multiplications
+    return mg.multiplications
 
 class TableBuilder:
   def __init__(self,lattice):
@@ -386,27 +388,28 @@ class MultiplicationGenerator:
           continue
 
         if nextpos == None: # this means that multiplication is totally defined
-          return True
-#          extprofile = self.get_extended_profile(extmult)
-#          key = self.get_hash(extprofile)
-#          if key not in self.multiplications:
-#            self.multiplications[key] = [extmult]
-#          else:
-#            lst = self.multiplications[key]
-#            unknown = True
-#            for m in lst:
-#              if self.is_automorphic_image(extmult,m):
-#                unknown = False
-#                break
-#            if unknown:
-#              lst.append(extmult)
+#          return True
+          extprofile = self.get_extended_profile(extmult)
+          key = self.get_hash(extprofile)
+          if key not in self.multiplications:
+            self.multiplications[key] = [extmult]
+          else:
+            lst = self.multiplications[key]
+            unknown = True
+            for m in lst:
+              if self.is_automorphic_image(extmult,m):
+                unknown = False
+                break
+            if unknown:
+              lst.append(extmult)
 
         else:
-          success = self.fill_table(extmult,nextpos[0],nextpos[1])
-          if success:
-            return True
+          self.fill_table(extmult,nextpos[0],nextpos[1])
+#          success = self.fill_table(extmult,nextpos[0],nextpos[1])
+#          if success:
+#            return True
 
-    return False
+#    return False
 
   def get_extended_profile(self,mult):
     n = self.lattice.n
@@ -511,20 +514,40 @@ class LatticeGenerator:
         with p.open(mode='wb') as f:
           pickle.dump(lattice,f)
 
+#  def load_level(self,n):
+#    hashtable = dict()
+#    lvldir = Path("database") / str(n)
+#    for keydir in lvldir.iterdir():
+#      key = keydir.name
+#      nlst = sum(1 for _ in keydir.iterdir())
+#      lst = []
+#      for i in range(nlst):
+#        p = keydir / str(i)
+#        with p.open(mode='rb') as f:
+#          lattice = pickle.load(f)
+#          lst.append(lattice)
+#      hashtable[key] = lst
+#    self.levels[n] = hashtable
+
   def load_level(self,n):
-    hashtable = dict()
-    lvldir = Path("database") / str(n)
-    for keydir in lvldir.iterdir():
-      key = keydir.name
-      nlst = sum(1 for _ in keydir.iterdir())
-      lst = []
-      for i in range(nlst):
-        p = keydir / str(i)
-        with p.open(mode='rb') as f:
-          lattice = pickle.load(f)
-          lst.append(lattice)
-      hashtable[key] = lst
-    self.levels[n] = hashtable
+    lvldir = Path("reducts") / str(n)
+    lvlset = set()
+    for p in lvldir.iterdir():
+      with p.open(mode='rb') as f:
+        lattice = pickle.load(f)
+        lvlset.add(lattice)
+    self.levels[n] = lvlset
+
+#  def load_level(self,n):
+#    lvldir = Path("mults") / str(n) / "lattices"
+#    lvlset = set()
+#    for p in lvldir.iterdir():
+#      with p.open(mode='rb') as f:
+#        lattice = pickle.load(f)
+#        lvlset.add(lattice)
+#    for l in lvlset:
+#      print(l._relation)
+#      print(l._multiplications)
 
   def build_level(self,n):
     if n==1:
@@ -571,38 +594,35 @@ class LatticeGenerator:
 #    mlst = lattice.get_multiplications()
 #    for key,lst in mlst.items():
 #      count += len(lst)
-    prefix = Path("reducts") / str(k)
+    prefix = Path("mults") / str(k)
     prefix.mkdir(parents=True)
-    hashtable = self.levels[k]
-    for key,lst in hashtable.items():
-      for lattice in lst:
-        mlst = lattice.get_multiplications()
-        if mlst:
-          count += 1
-          p = prefix / str(count)
-          with p.open(mode='wb') as f:
-            pickle.dump(lattice,f)
-#        for key,lst in mlst.items():
-#          count += len(lst)
-    print(count)
+    prefix0 = prefix / "reducts"
+    prefix0.mkdir()
+    prefix1 = prefix / "lattices"
+    prefix1.mkdir()
+    lvlset = self.levels[k]
+    while lvlset:
+      lattice = lvlset.pop()
+      count += 1
+      mcount = 0
+      p0 = prefix0 / str(count)
+      with p0.open(mode='wb') as f0:
+        pickle.dump(lattice._relation,f0)
+      time0 = time.time()
+      mlst = lattice.get_multiplications()
+      time1 = time.time() - time0
+      if time1 > 600:
+        print("very difficult lattice: %s in %s seconds" % (count,time1))
+      elif time1 > 300:
+        print("difficult lattice: %s in %s seconds" % (count,time1))
+      for key,lst in mlst.items():
+        mcount += len(lst)
+      p1 = prefix1 / ("%s_%s" % (count,mcount))
+      with p1.open(mode='wb') as f:
+        pickle.dump(lattice,f)
 
-#n = 12
-#lattice = UpperTriangularMatrix(n)
-#for i in range(n):
-#  for j in range(i,n):
-#    lattice._relation[i][j] = 1
-#start_time = time.time()
-#mdict = lattice.get_multiplications()
-#run_time = time.time() - start_time
-#print("--- %s seconds ---" % (time.time() - start_time))
-#count = 0
-#for key in mdict:
-#  lst = mdict[key]
-#  count += len(lst)
-#print("Linear Lattices: %s" % count)
-#print("Memory Used: %s" % sys.getsizeof(mdict))
 
-n = 4
+n = 12
 start_time = time.time()
 lit = LatticeGenerator()
 lit.load_level(n)
@@ -611,9 +631,4 @@ print("--- %s seconds ---" % (time.time() - start_time))
 #lit.build_level(12)
 #lit.store_level(12)
 #print("--- %s seconds ---" % (time.time() - start_time))
-#for i,hashtable in lit.levels.items():
-#  count = 0
-#  for key,lst in hashtable.items():
-#    count += len(lst)
-#  print(count)
 
