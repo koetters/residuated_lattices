@@ -6,7 +6,7 @@ import sys
 # Check if the user provides a residuated lattice
 if len(sys.argv) < 2:
     print("Missing parameter")
-    print("Usage: python endos.py <module_name>")
+    print("Usage: python deriv.py <module_name>")
     exit(0)
 
 # Load the residuated lattice

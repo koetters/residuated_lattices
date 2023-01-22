@@ -1,7 +1,217 @@
 import sys
 import time
 import pickle
+import shelve
 from pathlib import Path
+
+class ResiduatedLattice:
+
+  def __init__(self,lattice,mult):
+    n = len(lattice._relation)
+    self.n = n
+    self._leq = [[None] * n for _ in range(n)]
+    for i in range(n):
+      for j in range(n):
+        self._leq[i][j] = lattice._relation[i][j]
+    self._inf = lattice.infimum_operation().table
+    self._sup = lattice.supremum_operation().table
+    self._mult = [[None] * n for _ in range(n)]
+    for i in range(n):
+      for j in range(n):
+        self._mult[i][j] = mult[i][j]
+    self._arrow = [[None] * n for _ in range(n)]
+    for i in range(n):
+      for j in range(n):
+        value = 0
+        for k in range(n):
+          if self._leq[self._mult[i][k]][j]:
+            value = self._sup[value][k]
+        if not self._leq[self._mult[i][value]][j]:
+          raise ValueError("not a residuated lattice. arrow operation can not be defined.")
+        self._arrow[i][j] = value
+
+  @classmethod
+  def decode(cls,encoding,n):
+    upper_triangle_size = n * (n+1) // 2
+    part1_length = upper_triangle_size // 8
+    if upper_triangle_size % 8 != 0:
+      part1_length += 1
+    part1 = encoding[:part1_length]
+    part2 = encoding[part1_length:]
+
+    # decoding the underlying lattice
+    lattice = UpperTriangularMatrix.decode(part1,n)
+
+    # decoding the multiplication operation
+    seq = list(part2)
+    mult_op = BinaryOperation(n)
+    mult = mult_op.table
+    upperbyte = 1
+    byte = 0
+    for i in range(n):
+      for j in range(i,n):
+        mult[i][j] = (seq[byte] >> (4 * upperbyte)) & 15
+        mult[j][i] = mult[i][j]
+        upperbyte -= 1
+        if upperbyte < 0:
+          upperbyte = 1
+          byte += 1
+
+    return ResiduatedLattice(lattice,mult_op.table)
+
+  def __eq__(self,other):
+    n = self.n
+    if n != other.n:
+      return False
+    for i in range(n):
+      for j in range(n):
+        if self._leq[i][j] != other._leq[i][j]:
+          return False
+        if self._mult[i][j] != other._mult[i][j]:
+          return False
+    return True
+
+  def leq(self,i,j):
+    return self._leq[i][j]
+
+  def inf(self,i,j):
+    return self._inf[i][j]
+
+  def sup(self,i,j):
+    return self._sup[i][j]
+
+  def mult(self,i,j):
+    return self._mult[i][j]
+
+  def arrow(self,i,j):
+    return self._arrow[i][j]
+
+  def encode(self):
+    part1 = self.encode_order()
+    part2 = self.encode_mult()
+    encoding = part1 + part2
+    return encoding
+
+  def encode_mult(self):
+    n = self.n
+    upperbyte = 1
+    byte = 0
+    upper_triangle_size = n * (n+1) // 2
+    nbytes = upper_triangle_size // 2
+    if upper_triangle_size % 2 != 0:
+      nbytes += 1
+    seq = [0] * nbytes
+    for i in range(n):
+      for j in range(i,n):
+        seq[byte] += (self.mult(i,j) << (4 * upperbyte))
+        upperbyte -= 1
+        if upperbyte < 0:
+          upperbyte = 1
+          byte += 1
+    return bytes(seq)
+
+  def encode_order(self):
+    n = self.n
+    bit = 7
+    byte = 0
+    upper_triangle_size = n * (n+1) // 2
+    nbytes = upper_triangle_size // 8
+    if upper_triangle_size % 8 != 0:
+      nbytes += 1
+    seq = [0] * nbytes
+    for i in range(n):
+      for j in range(i,n):
+        if self.leq(i,j):
+          seq[byte] += (1 << bit)
+        bit -= 1
+        if bit < 0:
+          bit = 7
+          byte += 1
+    return bytes(seq)
+
+  def is_distributive(self):
+    n = self.n
+    for a in range(n):
+      for b in range(n):
+        for c in range(n):
+          if self.sup(a,self.inf(b,c)) != self.inf(self.sup(a,b),self.sup(a,c)):
+            return False
+    return True
+
+  def is_modular(self):
+    n = self.n
+    for a in range(n):
+      for b in range(n):
+        if not self.leq(a,b):
+          continue
+        for c in range(n):
+          if self.inf(self.sup(a,c),b) != self.sup(a,self.inf(c,b)):
+            return False
+    return True
+
+  def is_prelinear(self):
+    n = self.n
+    for a in range(n):
+      for b in range(n):
+        if self.sup(self.arrow(a,b),self.arrow(b,a)) != n-1:
+          return False
+    return True
+
+  def satisfies_pi1(self):
+    n = self.n
+    for a in range(n):
+      for b in range(n):
+        for c in range(n):
+          lhs = self.arrow(self.arrow(c,0),0)
+          rhs = self.arrow(self.arrow(self.mult(a,c),self.mult(b,c)),self.arrow(a,b))
+          if not self.leq(lhs,rhs):
+            return False
+    return True
+
+  def satisfies_pi2(self):
+    n = self.n
+    for a in range(n):
+      if self.inf(a,self.arrow(a,0)) != 0:
+        return False
+    return True
+
+  def is_strict(self):
+    n = self.n
+    for a in range(n):
+      for b in range(n):
+        if self.arrow(self.mult(a,b),0) != self.sup(self.arrow(a,0),self.arrow(b,0)):
+          return False
+    return True
+
+  def satisfies_wnm(self):
+    n = self.n
+    for a in range(n):
+      for b in range(n):
+        if self.sup(self.arrow(self.mult(a,b),0),self.arrow(self.inf(a,b),self.mult(a,b))) != n-1:
+          return False
+    return True
+
+  def is_divisible(self):
+    n = self.n
+    for a in range(n):
+      for b in range(n):
+        if self.inf(a,b) != self.mult(a,self.arrow(a,b)):
+          return False
+    return True
+
+  def is_involutive(self):
+    n = self.n
+    for a in range(n):
+      if a != self.arrow(self.arrow(a,0),0):
+        return False
+    return True
+
+  def is_idempotent(self):
+    n = self.n
+    for a in range(n):
+      if a != self.mult(a,a):
+        return False
+    return True
 
 class BinaryOperation:
   def __init__(self,n):
@@ -20,6 +230,7 @@ class BinaryOperation:
     return res
 
 class UpperTriangularMatrix:
+
   def __init__(self,n):
     self.n = n
     self._relation = [n*[0] for _ in range(n)]
@@ -30,8 +241,178 @@ class UpperTriangularMatrix:
     self._profile = None
     self._multiplications = None
 
+  @classmethod
+  def decode(self,encoding,n):
+    seq = list(encoding)
+    lattice = UpperTriangularMatrix(n)
+    order = lattice._relation
+    bit = 7
+    byte = 0
+    for i in range(n):
+      for j in range(i,n):
+        order[i][j] = (seq[byte] >> bit) & 1
+        bit -= 1
+        if bit < 0:
+          bit = 7
+          byte += 1
+    return lattice
+
   def __str__(self):
     return str(self._relation)
+
+  def __eq__(self,other):
+    n = self.n
+    if n != other.n:
+      return False
+    for i in range(n):
+      for j in range(n):
+        if self._relation[i][j] != other._relation[i][j]:
+          return False
+    return True
+
+  def height(self):
+    n = self.n
+    strict_order = []
+    for i in range(n):
+      for j in range(i+1,n):
+        if self.leq(i,j):
+          strict_order.append((i,j))
+    maxlength = 1
+    power = strict_order
+    while power:
+      maxlength += 1
+      power = self._product(power,strict_order)
+    return maxlength
+
+  def _product(self,A,B):
+    C = []
+    for a,b1 in A:
+      for b2,c in B:
+        if b1==b2:
+          C.append((a,c))
+    return C
+
+  def width(self):
+    n = self.n
+    self.incomparables = [set() for _ in range(n)]
+    for i in range(n):
+      for j in range(i+1,n):
+        if self.leq(i,j) or self.leq(j,i):
+          continue
+        self.incomparables[i].add(j)
+    result = self._find_width((),set(range(n)),0)
+    del(self.incomparables)
+    return result
+
+  def _find_width(self,antichain,choices,maxlength):
+    for i in choices:
+      antichain2 = antichain + (i,)
+      maxlength = max(maxlength,len(antichain2))
+      choices2 = choices & self.incomparables[i]
+      if maxlength < len(antichain2) + len(choices2):
+        result = self._find_width(antichain2,choices2,maxlength)
+        maxlength = max(maxlength,result)
+    return maxlength
+
+  def encode_order(self):
+    n = self.n
+    bit = 7
+    byte = 0
+    upper_triangle_size = n * (n+1) // 2
+    nbytes = upper_triangle_size // 8
+    if upper_triangle_size % 8 != 0:
+      nbytes += 1
+    seq = [0] * nbytes
+    for i in range(n):
+      for j in range(i,n):
+        if self.leq(i,j):
+          seq[byte] += (1 << bit)
+        bit -= 1
+        if bit < 0:
+          bit = 7
+          byte += 1
+    return bytes(seq)
+
+  def is_distributive(self):
+    n = self.n
+    sup = self.supremum_operation().table
+    inf = self.infimum_operation().table
+    for a in range(n):
+      for b in range(n):
+        for c in range(n):
+          if sup[a][inf[b][c]] != inf[sup[a][b]][sup[a][c]]:
+            return False
+    return True
+
+  def is_modular(self):
+    n = self.n
+    sup = self.supremum_operation().table
+    inf = self.infimum_operation().table
+    for a in range(n):
+      for b in range(n):
+        if not self.leq(a,b):
+          continue
+        for c in range(n):
+          if inf[sup[a][c]][b] != sup[a][inf[c][b]]:
+            return False
+    return True
+
+  def is_complemented(self):
+    n = self.n
+    sup = self.supremum_operation().table
+    inf = self.infimum_operation().table
+    complements = [set() for _ in range(n)]
+    for a in range(n):
+      for b in range(n):
+        if inf[a][b] == 0 and sup[a][b] == n-1:
+          complements[a].add(b)
+      if len(complements[a]) == 0:
+        return False
+    return True
+
+  def is_boolean(self):
+    return self.is_distributive() and self.is_complemented()
+
+  def is_relatively_complemented(self):
+    n = self.n
+    sup = self.supremum_operation().table
+    inf = self.infimum_operation().table
+    for a in range(n):
+      intervals = set()
+      upper_cone = [i for i in range(n) if self.leq(a,i)]
+      lower_cone = [i for i in range(n) if self.leq(i,a)]
+      for b in range(n):
+        intervals.add((inf[a][b],sup[a][b]))
+      if len(intervals) < len(upper_cone) * len(lower_cone):
+        return False
+    return True
+
+  def is_pseudocomplemented(self):
+    n = self.n
+    sup = self.supremum_operation().table
+    inf = self.infimum_operation().table
+    for a in range(n):
+      p = 0
+      for c in range(n):
+        if inf[a][c] == 0:
+          p = sup[p][c]
+      if inf[a][p] != 0:
+        return False
+    return True
+
+  def is_relatively_pseudocomplemented(self):
+    n = self.n
+    sup = self.supremum_operation().table
+    inf = self.infimum_operation().table
+    for a in range(n):
+      for b in range(n):
+        rp = 0
+        for c in range(n):
+          if self.leq(inf[a][c],b):
+            rp = sup[rp][c]
+        if not self.leq(inf[a][rp],b):
+          return False
+    return True
 
   def leq(self,i,j):
     if self._relation[i][j] == 1:
@@ -158,107 +539,9 @@ class UpperTriangularMatrix:
 
   def get_multiplications(self):
     mg = MultiplicationGenerator(self)
-#    return mg.run()
     mg.run()
     self._multiplications = mg.multiplications
     return mg.multiplications
-
-class TableBuilder:
-  def __init__(self,lattice):
-    n = lattice.n
-    self.lattice = lattice
-    supremum = lattice.supremum_operation()
-    infimum = lattice.infimum_operation()
-    self.sup = supremum.table
-    self.inf = infimum.table
-    self.ideal = [None for _ in range(n)]
-    self.ideal[0] = {0}
-    for i in range(1,n):
-      self.ideal[i] = self.ideal[i-1] | {self.sup[i][j] for j in range(0,i)}
-#    self.delta = [None for _ in range(n)]
-#    self.delta[0] = {0}
-#    for i in range(1,n):
-#      self.delta[i] = self.ideal[i] - self.ideal[i-1]
-    self.mult = [n*[None] for _ in range(n)]
-    for i in range(n):
-      self.mult[0][i] = 0
-      self.mult[i][0] = 0
-      self.mult[n-1][i] = i
-      self.mult[i][n-1] = i
-    self.results = []
-
-  def build_table(self):
-
-    n = self.lattice.n
-    pos = None
-    for k,i in ((k0,i0) for k0 in range(n) for i0 in range(k0+1)):
-      if self.mult[k][i] == None:
-        pos = (k,i)
-        break
-
-    if pos == None:
-      m = self.mult
-      s = self.sup
-      for a in range(n):
-        for b in range(n):
-          for c in range(n):
-            assert m[m[a][b]][c] == m[a][m[b][c]]
-            assert m[a][s[b][c]] == s[m[a][b]][m[a][c]]
-      copy = [n*[None] for _ in range(n)]
-      for r in range(n):
-        for s in range(n):
-          copy[r][s] = self.mult[r][s]
-      self.results.append(copy)
-      return
-
-    k,i = pos
-
-#    print("pos=(%s,%s)" % (k,i))
-#    print("table:")
-#    print(self.mult)
-
-    below_k = self.lattice.lower_neighbor(k)
-    below_i = self.lattice.lower_neighbor(i)
-    lbound = self.sup[self.mult[k][below_i]][self.mult[below_k][i]]
-    ubound = self.inf[k][i]
-
-#    print("next pos (%s,%s) in (%s,%s)" % (k,i,lbound,ubound))
-    for a in range(lbound,ubound+1):
-      if not (self.lattice.leq(lbound,a) and self.lattice.leq(a,ubound)):
-        continue
-
-      undo = [(k,i)]
-      self.mult[k][i] = a
-      self.mult[i][k] = a
-#      print("trying mult(%s,%s)=%s from (%s,%s)" % (k,i,a,lbound,ubound))
-#      print(self.mult)
-
-      valid = True
-
-      for l,j in ((l0,j0) for l0 in self.ideal[k] for j0 in self.ideal[i]):
-        x = self.sup[k][l]
-        y = self.sup[i][j]
-        if self.mult[x][y] == None:
-          self.mult[x][y] = self.sup[self.sup[a][self.mult[k][j]]][self.sup[self.mult[l][i]][self.mult[l][j]]]
-          self.mult[y][x] = self.mult[x][y]
-          undo.append((x,y))
-        else:
-          if self.mult[x][y] != self.sup[self.sup[a][self.mult[k][j]]][self.sup[self.mult[l][i]][self.mult[l][j]]]:
-            valid = False
-            break
-
-      if valid:
-        for j in range(k):
-          if self.mult[self.mult[k][i]][j] != self.mult[k][self.mult[i][j]]:
-            valid = False
-            break
-
-      if valid:
-        self.build_table()
-
-      for x,y in undo:
-        self.mult[x][y] = None
-        self.mult[y][x] = None
 
 class MultiplicationGenerator:
 
@@ -305,7 +588,14 @@ class MultiplicationGenerator:
       mult.table[i][0] = 0
       mult.table[n-1][i] = i
       mult.table[i][n-1] = i
-    return self.fill_table(mult,0,0)
+    # we deal with the trivial cases n=1 and n=2 separately
+    if n <= 2:
+      extmult = mult.copy()
+      extprofile = self.get_extended_profile(extmult)
+      key = self.get_hash(extprofile)
+      self.multiplications[key] = [extmult]
+      return
+    self.fill_table(mult,0,0)
 
   def fill_table(self,mult,i0,j0):
 
@@ -587,19 +877,13 @@ class LatticeGenerator:
 
   def build_residuated(self,k):
     count = 0
-#    tb = TableBuilder(lattice)
-#    tb.build_table()
-#    for m in tb.results:
-#      print(m)
-#    mlst = lattice.get_multiplications()
-#    for key,lst in mlst.items():
-#      count += len(lst)
     prefix = Path("mults") / str(k)
     prefix.mkdir(parents=True)
     prefix0 = prefix / "reducts"
     prefix0.mkdir()
     prefix1 = prefix / "lattices"
     prefix1.mkdir()
+    lvlset = set()
     lvlset = self.levels[k]
     while lvlset:
       lattice = lvlset.pop()
@@ -621,13 +905,166 @@ class LatticeGenerator:
       with p1.open(mode='wb') as f:
         pickle.dump(lattice,f)
 
+############################
 
-n = 12
+#count = 0
+##result = {}
+#result = 0
+#start_time = time.time()
+#with shelve.open("shelves/lat3.db",flag='r') as shelf:
+#  for key,lst in shelf.items():
+#    for lattice in lst:
+#      count += 1
+##      if lattice.is_relatively_complemented():
+##        result += 1
+##      h = lattice.height()
+##      w = lattice.width()
+##      if (h,w) in result:
+##        result[(h,w)] += 1
+##      else:
+##        result[(h,w)] = 1
+#      if count % 1000 == 0:
+#        print("*",end="",flush=True)
+#print("--- %s seconds ---" % (time.time() - start_time))
+#print(count)
+#print(result)
+
 start_time = time.time()
-lit = LatticeGenerator()
-lit.load_level(n)
-lit.build_residuated(n)
+n = 12
+count = 0
+result = {}
+p = Path("pickles/level%s.db" % n)
+with p.open(mode='rb') as f:
+  lvlset = pickle.load(f)
+  for encoding in lvlset:
+    count += 1
+    rlat = ResiduatedLattice.decode(encoding,n)
+    row = [0] * 10
+    if rlat.is_modular():
+      row[0] = 1
+    if rlat.is_distributive():
+      row[1] = 1
+    if rlat.satisfies_pi1():
+      row[2] = 1
+    if rlat.is_prelinear():
+      row[3] = 1
+    if rlat.satisfies_pi2():
+      row[4] = 1
+    if rlat.is_strict():
+      row[5] = 1
+    if rlat.satisfies_wnm():
+      row[6] = 1
+    if rlat.is_divisible():
+      row[7] = 1
+    if rlat.is_involutive():
+      row[8] = 1
+    if rlat.is_idempotent():
+      row[9] = 1
+    key = tuple(row)
+    if key in result:
+      result[key] += 1
+    else:
+      result[key] = 1
+    if count % 100000 == 0:
+      print("*",end="",flush=True)
 print("--- %s seconds ---" % (time.time() - start_time))
+print(count)
+print(result)
+print(len(result))
+
+#count = 0
+#mcount = 0
+##result = {}
+#result = [0] * 10
+#start_time = time.time()
+##lvlset = set()
+#with shelve.open("shelves/reslat10.db",flag='r') as shelf:
+#  for lattice_id,lattice in shelf.items():
+#    count +=1
+##    h = lattice.height()
+##    w = lattice.width()
+#    for key,lst in lattice._multiplications.items():
+#      for mult in lst:
+#        rlat = ResiduatedLattice(lattice,mult.table)
+#        mcount += 1
+##        encoding = rlat.encode()
+##        lvlset.add(encoding)
+#        if rlat.is_modular():
+#          result[0] += 1
+#        if rlat.is_distributive():
+#          result[1] += 1
+#        if rlat.satisfies_pi1():
+#          result[2] += 1
+#        if rlat.is_prelinear():
+#          result[3] += 1
+#        if rlat.satisfies_pi2():
+#          result[4] += 1
+#        if rlat.is_strict():
+#          result[5] += 1
+#        if rlat.satisfies_wnm():
+#          result[6] += 1
+#        if rlat.is_divisible():
+#          result[7] += 1
+#        if rlat.is_involutive():
+#          result[8] += 1
+#        if rlat.is_idempotent():
+#          result[9] += 1
+#        if mcount % 100000 == 0:
+#          print("*",end="",flush=True)
+##    if (h,w) in result:
+##      result[(h,w)] += m
+##    else:
+##      result[(h,w)] = m
+##    if count % 1000 == 0:
+##      print("*",end="",flush=True)
+##p = Path("pickles/level1.db")
+##with p.open(mode='wb') as f:
+##  pickle.dump(lvlset,f)
+#print("--- %s seconds ---" % (time.time() - start_time))
+#print(count)
+#print(mcount)
+#print(result)
+
+#start_time = time.time()
+#count = 0
+## dcount = 0
+#path = Path("mults/1/lattices")
+#with shelve.open("shelves/reslat1.db") as shelf:
+#  for p in path.iterdir():
+#    with p.open(mode="rb") as f:
+#      lattice_id = p.name.split("_")[0]
+#      lattice = pickle.load(f)
+#      shelf[lattice_id] = lattice
+##    distributive = True
+##    for a in range(n):
+##      for b in range(n):
+##        for c in range(n):
+##          if inf[a][sup[b][c]] != sup[inf[a][b]][inf[a][c]]:
+##            distributive = False
+##    if distributive:
+##      dcount += 1
+#      count += 1
+#      if count % 1000 == 0:
+#        print("*",end="",flush=True)
+##    for key,lst in lattice._multiplications.items():
+##      count += len(lst)
+#print("--- %s seconds ---" % (time.time() - start_time))
+#print(count)
+
+##############################
+
+#lit = LatticeGenerator()
+#lit.load_level(1)
+#with shelve.open("shelves/lat1.db") as shelf:
+#  for key,lst in lit.levels[1].items():
+#    shelf[key] = lst
+
+#n = 12
+#start_time = time.time()
+#lit = LatticeGenerator()
+#lit.load_level(n)
+#lit.build_residuated(n)
+#print("--- %s seconds ---" % (time.time() - start_time))
 #lit.build_level(12)
 #lit.store_level(12)
 #print("--- %s seconds ---" % (time.time() - start_time))
