@@ -1,5 +1,6 @@
 import os
 import pickle
+import time
 from pathlib import Path
 from multiplication_generator import MultiplicationGenerator
 
@@ -476,11 +477,14 @@ class DataStore:
         print("Lattice Level %s exists" % n)
       else:
         print("Building lattice level %s" % n)
+        start_time = time.time()
+        count = 0
         if n == 1:
           root = BoundedLattice([[1]])
           encoding = root.encode()
           lvlset = {encoding}
           self.store_lattices(lvlset,1)
+          count += 1
         else:
           parents = self.lattices(n-1)
           lvlset = set()
@@ -495,15 +499,24 @@ class DataStore:
               clst.append(child)
               encoding = child.encode()
               lvlset.add(encoding)
+              count += 1
           self.store_lattices(lvlset,n)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        print("--- #lattices:%s ---" % count)
       if self.residuated_exist(n):
         print("Residuated Lattice Level %s exists" % n)
       else:
         print("Building residuated lattice level %s" % n)
+        start_time = time.time()
+        count = 0
+        rcount = 0
         lattices = self.lattices(n)
         lvlset = set()
         lvldict = dict()
         for lattice in lattices:
+          count += 1
+          if count % 1000 == 0:
+            print("*",end="",flush=True)
           nmult = 0
           hashtable = lattice.multiplications()
           for key,lst in hashtable.items():
@@ -512,10 +525,13 @@ class DataStore:
               reslat = ResiduatedLattice(lattice._leq,mult.table)
               encoding = reslat.encode()
               lvlset.add(encoding)
+              rcount += 1
           latkey = lattice.encode()
           lvldict[latkey] = nmult
         self.store_residuated(lvlset,n)
         self.store_lattice_dict(lvldict,n)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        print("--- #residuated:%s ---" % rcount)
 
 class ContextSchema:
 
@@ -542,8 +558,4 @@ class ContextSchema:
         result[profile] = 1
     self.dists[n] = result
     return result
-
-if __name__=='__main__':
-  ds = DataStore()
-  ds.populate(9)
 
