@@ -1,6 +1,7 @@
 import os
 import pickle
 from pathlib import Path
+from multiplication_generator import MultiplicationGenerator
 
 class BoundedLattice:
 
@@ -117,6 +118,19 @@ class BoundedLattice:
           byte += 1
     return bytes(seq)
 
+  def __eq__(self,other):
+    n = self.n
+    if n != other.n:
+      return False
+    for i in range(n):
+      for j in range(n):
+        if self._leq[i][j] != other._leq[i][j]:
+          return False
+    return True
+
+  def __str__(self):
+    return str(self._leq)
+
   def leq(self,i,j):
     return self._leq[i][j]
 
@@ -125,6 +139,14 @@ class BoundedLattice:
 
   def sup(self,i,j):
     return self._sup[i][j]
+
+  # Returns a lower neighbor of i. If i is supremum-irreducible, this is the unique lower neighbor.
+  # If i=0 (no lower neighbor exists), None is returned.
+  def lower_neighbor(self,i):
+    for l in range(i-1,-1,-1):
+      if self.leq(l,i):
+        return l
+    return None
 
   def profile(self):
     return self._profile
@@ -200,6 +222,11 @@ class BoundedLattice:
           return True
     return False
 
+  def multiplications(self):
+    mg = MultiplicationGenerator(self)
+    mg.run()
+    return mg.multiplications
+
   def height(self):
 
     n = self.n
@@ -246,9 +273,104 @@ class BoundedLattice:
         maxlength = max(maxlength,result)
     return maxlength
 
+class ResiduatedLattice(BoundedLattice):
+
+  def __init__(self,order,mult):
+    super().__init__(order)
+    n = self.n
+
+    # the lattice multiplication is the supplied multiplication
+    self._mult = [n*[None] for _ in range(n)]
+    for i in range(n):
+      for j in range(n):
+        self._mult[i][j] = mult[i][j]
+
+    # the arrow operation is derived
+    self._arrow = [[None] * n for _ in range(n)]
+    for i in range(n):
+      for j in range(n):
+        value = 0
+        for k in range(n):
+          if self._leq[self._mult[i][k]][j]:
+            value = self._sup[value][k]
+        if not self._leq[self._mult[i][value]][j]:
+          raise ValueError("not a residuated lattice. arrow operation can not be defined.")
+        self._arrow[i][j] = value
+
+  @classmethod
+  def decode(cls,encoding,n):
+    upper_triangle_size = n * (n+1) // 2
+    part1_length = upper_triangle_size // 8
+    if upper_triangle_size % 8 != 0:
+      part1_length += 1
+    part1 = encoding[:part1_length]
+    part2 = encoding[part1_length:]
+
+    # decoding the underlying lattice
+    lattice = BoundedLattice.decode(part1,n)
+
+    # decoding the multiplication operation
+    seq = list(part2)
+    mult = [[None]*n for _ in range(n)]
+    upperbyte = 1
+    byte = 0
+    for i in range(n):
+      for j in range(i,n):
+        mult[i][j] = (seq[byte] >> (4 * upperbyte)) & 15
+        mult[j][i] = mult[i][j]
+        upperbyte -= 1
+        if upperbyte < 0:
+          upperbyte = 1
+          byte += 1
+
+    return ResiduatedLattice(lattice._leq,mult)
+
+  def __eq__(self,other):
+    n = self.n
+    if n != other.n:
+      return False
+    for i in range(n):
+      for j in range(n):
+        if self._leq[i][j] != other._leq[i][j]:
+          return False
+        if self._mult[i][j] != other._mult[i][j]:
+          return False
+    return True
+
+  def mult(self,i,j):
+    return self._mult[i][j]
+
+  def arrow(self,i,j):
+    return self._arrow[i][j]
+
+  def encode(self):
+    order_encoding = super().encode()
+    mult_encoding = self._encode_mult()
+    encoding = order_encoding + mult_encoding
+    return encoding
+
+  def _encode_mult(self):
+    n = self.n
+    upperbyte = 1
+    byte = 0
+    upper_triangle_size = n * (n+1) // 2
+    nbytes = upper_triangle_size // 2
+    if upper_triangle_size % 2 != 0:
+      nbytes += 1
+    seq = [0] * nbytes
+    for i in range(n):
+      for j in range(i,n):
+        seq[byte] += (self.mult(i,j) << (4 * upperbyte))
+        upperbyte -= 1
+        if upperbyte < 0:
+          upperbyte = 1
+          byte += 1
+    return bytes(seq)
+
 class DataStore:
   path = "data"
   lattice_prefix = "lat"
+  lattice_dict_prefix = "extlat"
   residuated_prefix = "reslat"
 
   def __init__(self):
@@ -263,9 +385,21 @@ class DataStore:
     scriptdir = Path(os.path.dirname(os.path.realpath(__file__)))
     return scriptdir / path
 
-  def exists(self,n):
+  def lattices_exist(self,n):
     datadir = self.base_path()
     filename = __class__.lattice_prefix + str(n) + ".db"
+    path = datadir / filename
+    return path.exists()
+
+  def lattice_dict_exists(self,n):
+    datadir = self.base_path()
+    filename = __class__.lattice_dict_prefix + str(n) + ".db"
+    path = datadir / filename
+    return path.exists()
+
+  def residuated_exist(self,n):
+    datadir = self.base_path()
+    filename = __class__.residuated_prefix + str(n) + ".db"
     path = datadir / filename
     return path.exists()
 
@@ -277,6 +411,15 @@ class DataStore:
      with path.open(mode='rb') as f:
        data = pickle.load(f)
      return data
+
+  # FileNotFoundError is raised (by Python) if file does not exist
+  def _get_lattice_dict(self,n):
+    datadir = self.base_path()
+    filename = __class__.lattice_dict_prefix + str(n) + ".db"
+    path = datadir / filename
+    with path.open(mode='rb') as f:
+      data = pickle.load(f)
+    return data
 
   # FileNotFoundError is raised (by Python) if file does not exist
   def _get_residuated(self,n):
@@ -293,12 +436,28 @@ class DataStore:
       lattice = BoundedLattice.decode(encoding,n)
       yield lattice
 
-  def residuated_iterator(self):
-    pass
+  def lattices_dict(self,n):
+    data = self._get_lattice_dict(n)
+    for encoding,nmult in data.items():
+      lattice = BoundedLattice.decode(encoding,n)
+      yield (lattice,nmult)
+
+  def residuated_lattices(self):
+    data = self._get_residuated(n)
+    for encoding in data:
+      reslat = ResiduatedLattice.decode(encoding,n)
+      yield reslat
 
   def store_lattices(self,data,n):
     datadir = self.base_path()
     filename = __class__.lattice_prefix + str(n) + ".db"
+    path = datadir / filename
+    with path.open(mode='xb') as f:
+      pickle.dump(data,f)
+
+  def store_lattice_dict(self,data,n):
+    datadir = self.base_path()
+    filename = __class__.lattice_dict_prefix + str(n) + ".db"
     path = datadir / filename
     with path.open(mode='xb') as f:
       pickle.dump(data,f)
@@ -310,52 +469,70 @@ class DataStore:
     with path.open(mode='xb') as f:
       pickle.dump(data,f)
 
-class Control:
-
-  def populate(self,nmax):
+  def populate(self,nmax=12):
     assert 1 <= nmax and nmax <= 12
-    ds = DataStore()
-    root = BoundedLattice([[1]])
-    encoding = root.encode()
-    lvlset = {encoding}
-    if not ds.exists(1):
-      ds.store_lattices(lvlset,1)
-    n = 2
-    while n <= nmax:
-      parents = ds.lattices(n-1)
-      lvlset = set()
-      level = dict()
-      for lattice in parents:
-        children = lattice.children()
-        for child in children:
-          key = child.hash()
-          clst = level.setdefault(key,[])
-          if any(child.isomorphic(other) for other in clst):
-             continue
-          clst.append(child)
-          encoding = child.encode()
-          lvlset.add(encoding)
-      ds.store_lattices(lvlset,n)
-      n += 1
-
-  def build_context(self):
-    pass
-
-  def build_histogram(self):
-    pass
+    for n in range(1,nmax+1):
+      if self.lattices_exist(n):
+        print("Lattice Level %s exists" % n)
+      else:
+        print("Building lattice level %s" % n)
+        if n == 1:
+          root = BoundedLattice([[1]])
+          encoding = root.encode()
+          lvlset = {encoding}
+          self.store_lattices(lvlset,1)
+        else:
+          parents = self.lattices(n-1)
+          lvlset = set()
+          level = dict()
+          for lattice in parents:
+            children = lattice.children()
+            for child in children:
+              key = child.hash()
+              clst = level.setdefault(key,[])
+              if any(child.isomorphic(other) for other in clst):
+                continue
+              clst.append(child)
+              encoding = child.encode()
+              lvlset.add(encoding)
+          self.store_lattices(lvlset,n)
+      if self.residuated_exist(n):
+        print("Residuated Lattice Level %s exists" % n)
+      else:
+        print("Building residuated lattice level %s" % n)
+        lattices = self.lattices(n)
+        lvlset = set()
+        lvldict = dict()
+        for lattice in lattices:
+          nmult = 0
+          hashtable = lattice.multiplications()
+          for key,lst in hashtable.items():
+            for mult in lst:
+              nmult += 1
+              reslat = ResiduatedLattice(lattice._leq,mult.table)
+              encoding = reslat.encode()
+              lvlset.add(encoding)
+          latkey = lattice.encode()
+          lvldict[latkey] = nmult
+        self.store_residuated(lvlset,n)
+        self.store_lattice_dict(lvldict,n)
 
 class ContextSchema:
 
   def __init__(self,name,attributes):
     self.name = name
     self.attributes = attributes
+    self.dists = {i:None for i in range(1,13)}
 
   def propnames(self):
     return [f.name for f in self.attributes]
 
-  def distribution(self):
+  def distribution(self,n):
+    assert 1 <= n and n <= 12
+    if self.dists[n] != None:
+      return self.dists[n]
     ds = DataStore()
-    it = ds.lattices(7)
+    it = ds.lattices(n)
     result = dict()
     for lattice in it:
       profile = tuple(f(lattice) for f in self.attributes)
@@ -363,5 +540,10 @@ class ContextSchema:
         result[profile] += 1
       else:
         result[profile] = 1
+    self.dists[n] = result
     return result
+
+if __name__=='__main__':
+  ds = DataStore()
+  ds.populate(9)
 
