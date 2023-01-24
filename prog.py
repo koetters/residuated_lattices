@@ -443,7 +443,7 @@ class DataStore:
       lattice = BoundedLattice.decode(encoding,n)
       yield (lattice,nmult)
 
-  def residuated_lattices(self):
+  def residuated_lattices(self,n):
     data = self._get_residuated(n)
     for encoding in data:
       reslat = ResiduatedLattice.decode(encoding,n)
@@ -533,7 +533,7 @@ class DataStore:
         print("--- %s seconds ---" % (time.time() - start_time))
         print("--- #residuated:%s ---" % rcount)
 
-class ContextSchema:
+class LatticeContext:
 
   def __init__(self,name,attributes):
     self.name = name
@@ -543,14 +543,18 @@ class ContextSchema:
   def propnames(self):
     return [f.name for f in self.attributes]
 
+  def object_iterator(self,n):
+    ds = DataStore()
+    it = ds.lattices(n)
+    return it
+
   def distribution(self,n):
     assert 1 <= n and n <= 12
     if self.dists[n] != None:
       return self.dists[n]
-    ds = DataStore()
-    it = ds.lattices(n)
+    objects = self.object_iterator(n)
     result = dict()
-    for lattice in it:
+    for lattice in objects:
       profile = tuple(f(lattice) for f in self.attributes)
       if profile in result:
         result[profile] += 1
@@ -558,4 +562,11 @@ class ContextSchema:
         result[profile] = 1
     self.dists[n] = result
     return result
+
+class ResiduatedContext(LatticeContext):
+
+  def object_iterator(self,n):
+    ds = DataStore()
+    it = ds.residuated_lattices(n)
+    return it
 

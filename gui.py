@@ -1,7 +1,7 @@
 import tkinter as tk
 import platform
 import math
-from prog import ContextSchema
+#from prog import LatticeContext,ResiduatedContext
 import contexts
 
 class VerticalListWidget(tk.Frame):
@@ -48,16 +48,16 @@ class Application:
     self.right_frame = tk.Frame(self.root,width=math.trunc(0.25*w),height=h,bg="SlateBlue3")
     self.right_frame.grid_propagate(False)
     self.right_frame.grid(row=0,column=1)
-    self.distributions_frame = tk.Frame(self.right_frame,width=math.trunc(0.25*w),height=math.trunc(0.5*h),bg="orange")
+    self.distributions_frame = tk.Frame(self.right_frame,width=math.trunc(0.25*w),height=math.trunc(0.5*h),bg="SlateBlue2")
     self.distributions_frame.grid_propagate(False)
-    self.distributions_frame.grid(row=0,column=0)
+    self.distributions_frame.grid(row=0,column=0,padx=10,pady=5)
     self.distributions_frame.columnconfigure(0,weight=1)
     self.distributions_frame.rowconfigure(0,weight=1)
-    self.info_frame = tk.Frame(self.right_frame,width=math.trunc(0.25*w),height=math.trunc(0.5*h),bg="green")
+    self.info_frame = tk.Frame(self.right_frame,width=math.trunc(0.25*w),height=math.trunc(0.5*h),bg="SlateBlue1")
     self.info_frame.grid_propagate(False)
-    self.info_frame.grid(row=1,column=0)
+    self.info_frame.grid(row=1,column=0,padx=10,pady=5)
     self.info_frame.columnconfigure(0,weight=1)
-    self.info_frame.rowconfigure(2,weight=1)
+    self.info_frame.rowconfigure(1,weight=1)
 
     schemas = contexts.schemas
     self.lookup = {schema.name:schema for schema in schemas}
@@ -77,26 +77,28 @@ class Application:
     index = w.curselection()[0]
     value = w.get(index)
     schema = self.lookup[value]
-#    self.display_context(schema)
     self.display_info(schema)
 
   def display_info(self,schema):
     propnames = schema.propnames()
 
+    for widget in self.left_frame.winfo_children():
+      widget.destroy()
     for widget in self.info_frame.winfo_children():
       widget.destroy()
-    tk.Label(self.info_frame,text="Hello").grid(row=0,column=0,pady=5)
-    HorizontalListWidget(self.info_frame,schema,self.display_context).grid(row=1,column=0)
-    VerticalListWidget(self.info_frame,propnames).grid(row=2,column=0)
+    HorizontalListWidget(self.info_frame,schema,self.display_context).grid(row=0,column=0)
+    VerticalListWidget(self.info_frame,propnames).grid(row=1,column=0)
 
   def display_context(self,schema,n):
     propnames = schema.propnames()
     ctx = schema.distribution(n)
-    header = ("",) + tuple(propnames)
+    header = ("n=%s" % n,) + tuple(propnames)
     rows = []
     for profile,number in ctx.items():
-      # rows.append((number,) + tuple(map(lambda v:"x" if v==True else " ",profile)))
-      rows.append((number,) + profile)
+      if all(isinstance(value,bool) for value in profile):
+        rows.append((number,) + tuple(map(lambda v:"x" if v==True else " ",profile)))
+      else:
+        rows.append((number,) + profile)
     rows = [header] + sorted(rows,reverse=True)
 
     for widget in self.left_frame.winfo_children():

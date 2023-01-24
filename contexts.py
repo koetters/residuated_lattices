@@ -1,9 +1,9 @@
-from prog import ContextSchema
+from prog import LatticeContext,ResiduatedContext
 import attributes as lp
 
 schemas = []
 
-schemas.append(ContextSchema("lattices - standard properties",[
+schemas.append(LatticeContext("lattices - standard properties",[
   lp.modular,
   lp.distributive,
   lp.complemented,
@@ -13,8 +13,28 @@ schemas.append(ContextSchema("lattices - standard properties",[
   lp.relatively_pseudocomplemented,
 ]))
 
-schemas.append(ContextSchema("height and width",[
+schemas.append(LatticeContext("lattices - height and width",[
   lp.height,
   lp.width,
 ]))
+
+schemas.append(ResiduatedContext("residuated lattices - standard properties",[
+  lp.modular,
+  lp.distributive,
+  lp.prelinear,
+  lp.pi1,
+  lp.pi2,
+  lp.strict,
+  lp.wnm,
+  lp.divisible,
+  lp.involutive,
+  lp.idempotent,
+]
+))
+
+schemas.append(ResiduatedContext("residuated lattices - height and width",[
+  lp.height,
+  lp.width,
+]
+))
 
