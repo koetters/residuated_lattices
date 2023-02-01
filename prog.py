@@ -86,7 +86,7 @@ class BoundedLattice:
     self._multiplications = None
 
   @classmethod
-  def decode(self,encoding,n):
+  def decode(cls,encoding,n):
     seq = list(encoding)
     order = [[0]*n for _ in range(n)]
     bit = 7
@@ -370,14 +370,16 @@ class ResiduatedLattice(BoundedLattice):
 
 class DataStore:
   path = "data"
+  contextpath = "contexts"
   lattice_prefix = "lat"
   lattice_dict_prefix = "extlat"
   residuated_prefix = "reslat"
 
   def __init__(self):
-    path = Path(__class__.path)
     datadir = self.base_path()
     datadir.mkdir(exist_ok=True)
+    contextdir = self.context_path()
+    contextdir.mkdir(exist_ok=True)
 
   def base_path(self):
     path = Path(__class__.path)
@@ -470,6 +472,60 @@ class DataStore:
     with path.open(mode='xb') as f:
       pickle.dump(data,f)
 
+  def context_path(self):
+    contextpath = Path(__class__.contextpath)
+    if contextpath.is_absolute() or contextpath.is_relative_to("/"):
+      return path
+    scriptdir = Path(os.path.dirname(os.path.realpath(__file__)))
+    return scriptdir / contextpath
+
+  def context_exists(self,name,n):
+    contextdir = self.context_path()
+    path = contextdir / name / str(n)
+    return path.exists()
+
+  def store_context(self,context):
+    contextdir = self.context_path()
+    familydir = contextdir / context.name
+    familydir.mkdir(exist_ok=True)
+    contextfile = familydir / str(context.level)
+    with contextfile.open(mode='xb') as f:
+      pickle.dump(context,f)
+
+  def load_context(self,familyname,n):
+    contextdir = self.context_path()
+    contextfile = contextdir / familyname / str(n)
+    with contextfile.open(mode='rb') as f:
+      context = pickle.load(f)
+    return context
+
+  def list_context_families(self):
+    contextdir = self.context_path()
+    lst = [d.name for d in contextdir.iterdir() if d.is_dir()]
+    return sorted(lst)
+
+  def context_family(self,family_name):
+    contextdir = self.context_path()
+    familydir = contextdir / family_name
+    lst = [f.name for f in familydir.iterdir() if f.is_file()]
+    family = {}
+    for contextname in lst:
+      family[contextname] = self.load_context(family_name,contextname)
+    return family
+
+  def build_contexts(self,schema,nmax=12):
+    assert 1 <= nmax and nmax <= 12
+    name = schema.name
+    for n in range(1,nmax+1):
+      if self.context_exists(name,n):
+        print('Context "%s" exists for level %s' % (name,n))
+      else:
+        print('Building context "%s" for level %s' % (name,n))
+        start_time = time.time()
+        context = schema.build_context(n)
+        self.store_context(context)
+        print("--- %s seconds ---" % (time.time() - start_time))
+
   def populate(self,nmax=12):
     assert 1 <= nmax and nmax <= 12
     for n in range(1,nmax+1):
@@ -533,12 +589,19 @@ class DataStore:
         print("--- %s seconds ---" % (time.time() - start_time))
         print("--- #residuated:%s ---" % rcount)
 
-class LatticeContext:
+class DistributionContext:
+
+  def __init__(self,name,level,attributes,distribution):
+    self.name = name
+    self.level = level
+    self.attributes = attributes
+    self.distribution = distribution
+
+class LatticeSchema:
 
   def __init__(self,name,attributes):
     self.name = name
     self.attributes = attributes
-    self.dists = {i:None for i in range(1,13)}
 
   def propnames(self):
     return [f.name for f in self.attributes]
@@ -548,22 +611,24 @@ class LatticeContext:
     it = ds.lattices(n)
     return it
 
-  def distribution(self,n):
+  def build_context(self,n):
     assert 1 <= n and n <= 12
-    if self.dists[n] != None:
-      return self.dists[n]
+    count = 0
     objects = self.object_iterator(n)
-    result = dict()
+    distribution = dict()
     for lattice in objects:
       profile = tuple(f(lattice) for f in self.attributes)
-      if profile in result:
-        result[profile] += 1
+      if profile in distribution:
+        distribution[profile] += 1
       else:
-        result[profile] = 1
-    self.dists[n] = result
-    return result
+        distribution[profile] = 1
+      count += 1
+      if count % 100000 == 0:
+        print("*",end="",flush=True)
+    attributes = self.propnames()
+    return DistributionContext(self.name,n,attributes,distribution)
 
-class ResiduatedContext(LatticeContext):
+class ResiduatedSchema(LatticeSchema):
 
   def object_iterator(self,n):
     ds = DataStore()

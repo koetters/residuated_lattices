@@ -1,8 +1,7 @@
 import tkinter as tk
 import platform
 import math
-#from prog import LatticeContext,ResiduatedContext
-import contexts
+from prog import DataStore
 
 class VerticalListWidget(tk.Frame):
   def __init__(self,parent,items):
@@ -11,13 +10,13 @@ class VerticalListWidget(tk.Frame):
       tk.Label(self,text=items[i],fg='black',bg='white',borderwidth=1,relief='raised').grid(row=i,column=0,sticky="news")
 
 class HorizontalListWidget(tk.Frame):
-  def __init__(self,parent,schema,handler):
+  def __init__(self,parent,levels,handler):
     super().__init__(parent)
     items = [1,2,3,4,5,6,7,8,9,10,11,12]
-    for i in items:
-      label = tk.Label(self,text=str(i),fg='black',bg='white',width=2,borderwidth=1,relief='raised',cursor='hand2')
+    for i,lvl in enumerate(levels):
+      label = tk.Label(self,text=str(lvl),fg='black',bg='white',width=2,borderwidth=1,relief='raised',cursor='hand2')
       label.grid(row=0,column=i,sticky="news")
-      label.bind('<Button-1>',lambda event,cs=schema,n=i: handler(cs,n))
+      label.bind('<Button-1>',lambda event,n=lvl: handler(n))
 
 class TableWidget(tk.Frame):
   def __init__(self,parent,rows):
@@ -59,14 +58,14 @@ class Application:
     self.info_frame.columnconfigure(0,weight=1)
     self.info_frame.rowconfigure(1,weight=1)
 
-    schemas = contexts.schemas
-    self.lookup = {schema.name:schema for schema in schemas}
-    assert len(self.lookup) == len(schemas)
+    self.ds = DataStore()
+    context_list = self.ds.list_context_families()
+    self.contexts = None
 
     self.listbox = tk.Listbox(self.distributions_frame,selectmode=tk.SINGLE)
     self.listbox.config(width=0,height=0)
-    for i,schema in enumerate(schemas):
-      self.listbox.insert(i,schema.name)
+    for i,contextname in enumerate(context_list):
+      self.listbox.insert(i,contextname)
     self.listbox.grid(row=0,column=0)
     self.listbox.bind('<<ListboxSelect>>',self.selection_callback)
 
@@ -75,26 +74,33 @@ class Application:
   def selection_callback(self,event):
     w = event.widget
     index = w.curselection()[0]
-    value = w.get(index)
-    schema = self.lookup[value]
-    self.display_info(schema)
+    name = w.get(index)
+    self.contexts = self.ds.context_family(name)
+    self.display_info()
 
-  def display_info(self,schema):
-    propnames = schema.propnames()
-
+  def display_info(self):
     for widget in self.left_frame.winfo_children():
       widget.destroy()
     for widget in self.info_frame.winfo_children():
       widget.destroy()
-    HorizontalListWidget(self.info_frame,schema,self.display_context).grid(row=0,column=0)
+    propnames = []
+    for level,context in self.contexts.items():
+      propnames = context.attributes
+      break
+    for level,context in self.contexts.items():
+      assert len(propnames) == len(context.attributes)
+      for i in range(len(propnames)):
+        assert propnames[i] == context.attributes[i]
+    levels = sorted(self.contexts.keys(),key=int)
+    HorizontalListWidget(self.info_frame,levels,self.display_context).grid(row=0,column=0)
     VerticalListWidget(self.info_frame,propnames).grid(row=1,column=0)
 
-  def display_context(self,schema,n):
-    propnames = schema.propnames()
-    ctx = schema.distribution(n)
+  def display_context(self,n):
+    context = self.contexts[n]
+    propnames = context.attributes
     header = ("n=%s" % n,) + tuple(propnames)
     rows = []
-    for profile,number in ctx.items():
+    for profile,number in context.distribution.items():
       if all(isinstance(value,bool) for value in profile):
         rows.append((number,) + tuple(map(lambda v:"x" if v==True else " ",profile)))
       else:
