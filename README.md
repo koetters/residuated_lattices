@@ -1,4 +1,18 @@
 # residuated_lattices
+Usage: python gui.py
+
+The command launches a graphical user interface, from where a number of formal contexts can be viewed,
+which show the numbers of lattices, or residuated lattices, for each combination of properties,
+inspired by the paper "Residuated Lattices of Size <= 12, Extended Version" of Radim Belohlavek and Vilem Vychodil.
+The script generate.py allows to generate all lattices, and residuated lattices, of size <= 12,
+and also the mentioned formal contexts (the computations take about 1-2 days for n=12). It is also possible
+to compute custom contexts, but this is currently an undocumented feature.
+
+Below is the documentation for an older version of the program. The features described there are still available,
+but have not yet been integrated in the newer version.
+
+--------------------------------------------------------------------------------------------------------------------
+
 Check if a given algebra of type (2,2,2,2,0,0) is a residuated lattice (i.e. satisfies the axioms).
 
 Usage: python check.py \<algebra to be checked\>
