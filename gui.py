@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 import platform
 import math
 from prog import DataStore
@@ -18,16 +19,6 @@ class HorizontalListWidget(tk.Frame):
       label.grid(row=0,column=i,sticky="news")
       label.bind('<Button-1>',lambda event,n=lvl: handler(n))
 
-class TableWidget(tk.Frame):
-  def __init__(self,parent,rows):
-    super().__init__(parent)
-    for i in range(len(rows)):
-      for j in range(len(rows[0])):
-        textcolor = 'black'
-        if i==0 or j==0:
-          textcolor = 'blue'
-        tk.Label(self,text=rows[i][j],fg=textcolor,bg='white',borderwidth=1,relief='raised').grid(row=i,column=j,sticky="news")
-
 class Application:
   def __init__(self):
     self.root = tk.Tk()
@@ -44,6 +35,7 @@ class Application:
     self.left_frame.grid(row=0,column=0)
     self.left_frame.columnconfigure(0,weight=1)
     self.left_frame.rowconfigure(0,weight=1)
+
     self.right_frame = tk.Frame(self.root,width=math.trunc(0.25*w),height=h,bg="SlateBlue3")
     self.right_frame.grid_propagate(False)
     self.right_frame.grid(row=0,column=1)
@@ -109,7 +101,26 @@ class Application:
 
     for widget in self.left_frame.winfo_children():
       widget.destroy()
-    TableWidget(self.left_frame,rows).grid(row=0,column=0)
+
+    self.canvas = tk.Canvas(self.left_frame)
+    self.canvas.grid(row=0,column=0)
+    self.scrollbar = ttk.Scrollbar(self.left_frame,orient=tk.VERTICAL,command=self.canvas.yview)
+    self.scrollbar.grid(row=0,column=1,sticky="ns")
+    self.canvas.configure(yscrollcommand=self.scrollbar.set)
+    self.table_frame = tk.Frame(self.canvas)
+    self.table_frame.grid(row=0,column=0)
+
+    for i in range(len(rows)):
+      for j in range(len(rows[0])):
+        textcolor = 'black'
+        if i==0 or j==0:
+          textcolor = 'blue'
+        tk.Label(self.table_frame,text=rows[i][j],fg=textcolor,bg='white',borderwidth=1,relief='raised').grid(row=i,column=j,sticky="news")
+
+    self.canvas.create_window((0,0),window=self.table_frame,anchor=tk.NW)
+    self.table_frame.update_idletasks()
+    bbox = self.canvas.bbox(tk.ALL)
+    self.canvas.configure(scrollregion=bbox, width=bbox[2]-bbox[0], height=bbox[3]-bbox[1])
 
 if __name__ == "__main__":
   Application()
