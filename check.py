@@ -27,7 +27,7 @@ leq = lattice.leq
 class Axiom:
     def __init__(self,predicate):
         self.predicate = predicate
-        self.params = inspect.getargspec(self.predicate).args
+        self.params = inspect.getfullargspec(self.predicate).args
         self.nparams = len(self.params)
 
     def __str__(self):
