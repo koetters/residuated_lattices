@@ -344,6 +344,9 @@ class ResiduatedLattice(BoundedLattice):
   def arrow(self,i,j):
     return self._arrow[i][j]
 
+  def neg(self,i):
+    return self._arrow[i][0]
+
   def encode(self):
     order_encoding = super().encode()
     mult_encoding = self._encode_mult()
@@ -604,7 +607,7 @@ class LatticeSchema:
     self.attributes = attributes
 
   def propnames(self):
-    return [f.name for f in self.attributes]
+    return [name for name in self.attributes.keys()]
 
   def object_iterator(self,n):
     ds = DataStore()
@@ -617,7 +620,7 @@ class LatticeSchema:
     objects = self.object_iterator(n)
     distribution = dict()
     for lattice in objects:
-      profile = tuple(f(lattice) for f in self.attributes)
+      profile = tuple(f(lattice) for f in self.attributes.values())
       if profile in distribution:
         distribution[profile] += 1
       else:

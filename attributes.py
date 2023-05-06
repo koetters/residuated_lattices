@@ -1,16 +1,4 @@
-def lattice_property(name):
-  def decorator(f):
-    f.name = name
-    return f
-  return decorator
-
-def residuated_property(name):
-  def decorator(f):
-    f.name = name
-    return f
-  return decorator
-
-@lattice_property("distributive")
+# lattice property
 def distributive(lattice):
   n = lattice.n
   for a in range(n):
@@ -20,7 +8,7 @@ def distributive(lattice):
           return False
   return True
 
-@lattice_property("modular")
+# lattice property
 def modular(lattice):
   n = lattice.n
   for a in range(n):
@@ -32,7 +20,7 @@ def modular(lattice):
           return False
   return True
 
-@lattice_property("complemented")
+# lattice property
 def complemented(lattice):
   n = lattice.n
   complements = [set() for _ in range(n)]
@@ -44,7 +32,7 @@ def complemented(lattice):
       return False
   return True
 
-@lattice_property("relatively complemented")
+# lattice property
 def relatively_complemented(lattice):
   n = lattice.n
   for a in range(n):
@@ -57,7 +45,7 @@ def relatively_complemented(lattice):
       return False
   return True
 
-@lattice_property("pseudo-complemented")
+# lattice property
 def pseudocomplemented(lattice):
   n = lattice.n
   for a in range(n):
@@ -69,7 +57,7 @@ def pseudocomplemented(lattice):
       return False
   return True
 
-@lattice_property("relatively pseudo-complemented")
+# lattice property
 def relatively_pseudocomplemented(lattice):
   n = lattice.n
   for a in range(n):
@@ -82,19 +70,19 @@ def relatively_pseudocomplemented(lattice):
         return False
   return True
 
-@lattice_property("Boolean")
+# lattice property
 def boolean(lattice):
   return distributive(lattice) and complemented(lattice)
 
-@lattice_property("height")
+# lattice property
 def height(lattice):
   return lattice.height()
 
-@lattice_property("width")
+# lattice property
 def width(lattice):
   return lattice.width()
 
-@residuated_property("prelinear")
+# residuated property
 def prelinear(rlat):
   n = rlat.n
   for a in range(n):
@@ -103,7 +91,7 @@ def prelinear(rlat):
         return False
   return True
 
-@residuated_property("pi1")
+# residuated property
 def pi1(rlat):
   n = rlat.n
   for a in range(n):
@@ -115,7 +103,7 @@ def pi1(rlat):
           return False
   return True
 
-@residuated_property("pi2")
+# residuated property
 def pi2(rlat):
   n = rlat.n
   for a in range(n):
@@ -123,7 +111,7 @@ def pi2(rlat):
       return False
   return True
 
-@residuated_property("strict")
+# residuated property
 def strict(rlat):
   n = rlat.n
   for a in range(n):
@@ -132,7 +120,7 @@ def strict(rlat):
         return False
   return True
 
-@residuated_property("weak nilpotent minimum")
+# residuated property
 def wnm(rlat):
   n = rlat.n
   for a in range(n):
@@ -141,7 +129,7 @@ def wnm(rlat):
         return False
   return True
 
-@residuated_property("divisible")
+# residuated property
 def divisible(rlat):
   n = rlat.n
   for a in range(n):
@@ -150,7 +138,7 @@ def divisible(rlat):
         return False
   return True
 
-@residuated_property("involutive")
+# residuated property
 def involutive(rlat):
   n = rlat.n
   for a in range(n):
@@ -158,11 +146,62 @@ def involutive(rlat):
       return False
   return True
 
-@residuated_property("idempotent")
+# residuated property
 def idempotent(rlat):
   n = rlat.n
   for a in range(n):
     if a != rlat.mult(a,a):
+      return False
+  return True
+
+# residuated property
+def semi_prelinear(rlat):
+  n = rlat.n
+  for x in range(n):
+    for y in range(n):
+      if rlat.sup(rlat.arrow(rlat.neg(x),rlat.neg(y)),rlat.arrow(rlat.neg(y),rlat.neg(x))) != n-1:
+        return False
+  return True
+
+# residuated property
+def semi_idempotent(rlat):
+  n = rlat.n
+  for x in range(n):
+    if rlat.neg(rlat.mult(rlat.neg(x),rlat.neg(x))) != rlat.neg(rlat.neg(x)):
+      return False
+  return True
+
+# residuated property
+def semi_divisible(rlat):
+  n = rlat.n
+  for x in range(n):
+    for y in range(n):
+      if rlat.neg(rlat.mult(rlat.neg(x),rlat.arrow(rlat.neg(x),rlat.neg(y)))) != rlat.neg(rlat.inf(rlat.neg(x),rlat.neg(y))):
+        return False
+  return True
+
+# residuated property
+def demorgan(rlat):
+  n = rlat.n
+  for x in range(n):
+    for y in range(n):
+      if rlat.neg(rlat.inf(x,y)) != rlat.sup(rlat.neg(x),rlat.neg(y)):
+        return False
+  return True
+
+# residuated property
+def stonean(rlat):
+  n = rlat.n
+  for x in range(n):
+    if rlat.sup(rlat.neg(x),rlat.neg(rlat.neg(x))) != n-1:
+      return False
+  return True
+
+# residuated property
+def semig(rlat):
+  n = rlat.n
+  for x in range(n):
+    if rlat.neg(rlat.mult(x,x)) != rlat.neg(x):
       return False
   return True
 
