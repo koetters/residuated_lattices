@@ -608,14 +608,14 @@ class DistributionContext:
 #    self.attributes = attributes
 #
 #  def propnames(self):
-#    return [name for name in self.attributes.keys()]
+#    return [name for name,base_names in self.attributes]
 #
 #  def build_context(self,n):
 #    base_context = ... # load Boolean distribution context for given n
 #    distribution = dict()
 #    for row,count in base_context.distribution.items():
 #      named_row = dict(zip(base_context.attributes,row))
-#      for name, base_names in self.attributes.items():
+#      for name, base_names in self.attributes:
 #      profile = []
 #      distribution = 
 
@@ -626,7 +626,7 @@ class LatticeSchema:
     self.attributes = attributes
 
   def propnames(self):
-    return [name for name in self.attributes.keys()]
+    return [name for name,f in self.attributes]
 
   def object_iterator(self,n):
     ds = DataStore()
@@ -639,7 +639,7 @@ class LatticeSchema:
     objects = self.object_iterator(n)
     distribution = dict()
     for lattice in objects:
-      profile = tuple(f(lattice) for f in self.attributes.values())
+      profile = tuple(f(lattice) for name,f in self.attributes)
       if profile in distribution:
         distribution[profile] += 1
       else:

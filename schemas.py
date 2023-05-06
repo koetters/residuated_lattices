@@ -29,20 +29,20 @@ residuated_properties = ResiduatedSchema("residuated lattices - standard propert
   ("idempotent", lp.idempotent),
 ])
 
-special_algebras = DerivedSchema("residuated lattices - special algebras", residuated_properties, [
-  ("MTL-algebra", ["prelinear"]),
-  ("SMTL-algebra", ["prelinear","pi2"]),
-  ("WNM-algebra", ["prelinear","weak nilpotent minimum"]),
-  ("BL-algebra", ["prelinear","divisible"]),
-  ("SBL-algebra", ["prelinear","divisible","pi2"]),
-  ("IMTL-algebra", ["prelinear","involutive"]),
-  ("Heyting algebra", ["divisible","idempotent"]),
-  ("G-algebra", ["prelinear","divisible","idempotent"]),
-  ("NM-algebra", ["prelinear","involutive","weak nilpotent minimum"]),
-  ("MV-algebra", ["divisible","involutive"]),
-  ("Pi-algebra", ["prelinear","divisible","pi1","pi2"]),
-  ("PiMTL-algebra", ["prelinear","pi1","pi2"]),
-])
+#special_algebras = DerivedSchema("residuated lattices - special algebras", residuated_properties, [
+#  ("MTL-algebra", ["prelinear"]),
+#  ("SMTL-algebra", ["prelinear","pi2"]),
+#  ("WNM-algebra", ["prelinear","weak nilpotent minimum"]),
+#  ("BL-algebra", ["prelinear","divisible"]),
+#  ("SBL-algebra", ["prelinear","divisible","pi2"]),
+#  ("IMTL-algebra", ["prelinear","involutive"]),
+#  ("Heyting algebra", ["divisible","idempotent"]),
+#  ("G-algebra", ["prelinear","divisible","idempotent"]),
+#  ("NM-algebra", ["prelinear","involutive","weak nilpotent minimum"]),
+#  ("MV-algebra", ["divisible","involutive"]),
+#  ("Pi-algebra", ["prelinear","divisible","pi1","pi2"]),
+#  ("PiMTL-algebra", ["prelinear","pi1","pi2"]),
+#])
 
 residuated_dimensions = ResiduatedSchema("residuated lattices - width and height", [
   ("height", lp.height),
