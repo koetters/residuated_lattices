@@ -600,6 +600,25 @@ class DistributionContext:
     self.attributes = attributes
     self.distribution = distribution
 
+#class DerivedSchema:
+#
+#  def __init__(self,name,schema,attributes):
+#    self.name = name
+#    self.base = schema
+#    self.attributes = attributes
+#
+#  def propnames(self):
+#    return [name for name in self.attributes.keys()]
+#
+#  def build_context(self,n):
+#    base_context = ... # load Boolean distribution context for given n
+#    distribution = dict()
+#    for row,count in base_context.distribution.items():
+#      named_row = dict(zip(base_context.attributes,row))
+#      for name, base_names in self.attributes.items():
+#      profile = []
+#      distribution = 
+
 class LatticeSchema:
 
   def __init__(self,name,attributes):
