@@ -1,4 +1,4 @@
-from prog import LatticeSchema,ResiduatedSchema
+from prog import LatticeSchema,ResiduatedSchema,DerivedSchema
 import attributes as lp
 
 lattice_properties = LatticeSchema("lattices - standard properties", [
@@ -29,20 +29,20 @@ residuated_properties = ResiduatedSchema("residuated lattices - standard propert
   ("idempotent", lp.idempotent),
 ])
 
-#special_algebras = DerivedSchema("residuated lattices - special algebras", residuated_properties, [
-#  ("MTL-algebra", ["prelinear"]),
-#  ("SMTL-algebra", ["prelinear","pi2"]),
-#  ("WNM-algebra", ["prelinear","weak nilpotent minimum"]),
-#  ("BL-algebra", ["prelinear","divisible"]),
-#  ("SBL-algebra", ["prelinear","divisible","pi2"]),
-#  ("IMTL-algebra", ["prelinear","involutive"]),
-#  ("Heyting algebra", ["divisible","idempotent"]),
-#  ("G-algebra", ["prelinear","divisible","idempotent"]),
-#  ("NM-algebra", ["prelinear","involutive","weak nilpotent minimum"]),
-#  ("MV-algebra", ["divisible","involutive"]),
-#  ("Pi-algebra", ["prelinear","divisible","pi1","pi2"]),
-#  ("PiMTL-algebra", ["prelinear","pi1","pi2"]),
-#])
+special_algebras = DerivedSchema("residuated lattices - special algebras", residuated_properties, [
+  ("MTL", ["prelinear"]),
+  ("SMTL", ["prelinear","pi2"]),
+  ("WNM", ["prelinear","weak nilpotent minimum"]),
+  ("BL", ["prelinear","divisible"]),
+  ("SBL", ["prelinear","divisible","pi2"]),
+  ("IMTL", ["prelinear","involutive"]),
+  ("Heyting", ["divisible","idempotent"]),
+  ("G", ["prelinear","divisible","idempotent"]),
+  ("NM", ["prelinear","involutive","weak nilpotent minimum"]),
+  ("MV", ["divisible","involutive"]),
+  ("Pi", ["prelinear","divisible","pi1","pi2"]),
+  ("PiMTL", ["prelinear","pi1","pi2"]),
+])
 
 residuated_dimensions = ResiduatedSchema("residuated lattices - width and height", [
   ("height", lp.height),
@@ -58,3 +58,21 @@ extra_properties = ResiduatedSchema("residuated lattices - extra properties", [
   ("semi-G-algebra", lp.semig),
 ])
 
+all_properties = ResiduatedSchema("residuated lattices - all properties", [
+  ("MOD", lp.modular),
+  ("DIS", lp.distributive),
+  ("MTL", lp.prelinear),
+  ("P1", lp.pi1),
+  ("P2", lp.pi2),
+  ("STR", lp.strict),
+  ("WNM", lp.wnm),
+  ("DIV", lp.divisible),
+  ("INV", lp.involutive),
+  ("IDE", lp.idempotent),
+  ("S-MTL", lp.semi_prelinear),
+  ("S-DIV", lp.semi_divisible),
+  ("DMO", lp.demorgan),
+  ("STO", lp.stonean),
+  ("S-G", lp.semig),
+  ("QCO", lp.quasicomplemented),
+])

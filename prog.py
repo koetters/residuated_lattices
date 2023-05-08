@@ -525,8 +525,13 @@ class DataStore:
       else:
         print('Building context "%s" for level %s' % (name,n))
         start_time = time.time()
-        context = schema.build_context(n)
-        self.store_context(context)
+        if isinstance(schema,DerivedSchema):
+          base_context = self.load_context(schema.base.name,n)
+          context = schema.build_context(n,base_context)
+          self.store_context(context)
+        else:
+          context = schema.build_context(n)
+          self.store_context(context)
         print("--- %s seconds ---" % (time.time() - start_time))
 
   def populate(self,nmax=12):
@@ -600,24 +605,28 @@ class DistributionContext:
     self.attributes = attributes
     self.distribution = distribution
 
-#class DerivedSchema:
-#
-#  def __init__(self,name,schema,attributes):
-#    self.name = name
-#    self.base = schema
-#    self.attributes = attributes
-#
-#  def propnames(self):
-#    return [name for name,base_names in self.attributes]
-#
-#  def build_context(self,n):
-#    base_context = ... # load Boolean distribution context for given n
-#    distribution = dict()
-#    for row,count in base_context.distribution.items():
-#      named_row = dict(zip(base_context.attributes,row))
-#      for name, base_names in self.attributes:
-#      profile = []
-#      distribution = 
+class DerivedSchema:
+
+  def __init__(self,name,schema,attributes):
+    self.name = name
+    self.base = schema
+    self.attributes = attributes
+
+  def propnames(self):
+    return [name for name,base_names in self.attributes]
+
+  def build_context(self,n,base_context):
+    distribution = dict()
+    for row,objcount in base_context.distribution.items():
+      named_row = dict(zip(base_context.attributes,row))
+      profile = tuple(all(named_row[base_name] for base_name in base_names) for name, base_names in self.attributes)
+      if profile in distribution:
+        distribution[profile] += objcount
+      else:
+        distribution[profile] = objcount
+    attributes = self.propnames()
+    return DistributionContext(self.name,n,attributes,distribution)
+
 
 class LatticeSchema:
 

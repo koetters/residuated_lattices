@@ -205,3 +205,15 @@ def semig(rlat):
       return False
   return True
 
+# residuated property
+def quasicomplemented(rlat):
+  n = rlat.n
+  coannulets = []
+  for x in range(n):
+    coannulets.append(set([z for z in range(n) if rlat.sup(x,z)==n-1]))
+  for x in range(n):
+    double_coannulet = set.intersection(*[coannulets[z] for z in coannulets[x]])
+    if double_coannulet not in coannulets:
+      return False
+  return True
+
