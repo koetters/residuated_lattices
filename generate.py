@@ -7,9 +7,7 @@ if len(sys.argv) == 1:
 
 else:
   name = sys.argv[1]
-  n = 12
-  if len(sys.argv) > 2:
-    n = int(sys.argv[2])
+  n = 10
   assert 1 <= n <= 12
   module = __import__('schemas')
   schema = getattr(module,name)

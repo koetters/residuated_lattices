@@ -67,17 +67,6 @@ all_properties = ResiduatedSchema("residuated lattices - all properties", [
   ("IMP", lp.imp),
 ])
 
-mixed_properties = ResiduatedSchema("residuated lattices - mixed properties", [
-  ("MTL", lp.prelinear),
-  ("S-MTL", lp.semi_prelinear),
-  ("IDE", lp.idempotent),
-  ("S-IDE", lp.semi_idempotent),
-  ("DIV", lp.divisible),
-  ("S-DIV", lp.semi_divisible),
-  ("DMO", lp.demorgan),
-  ("STO", lp.stonean),
-])
-
 publication_properties = ResiduatedSchema("residuated lattices - publication properties", [
   ("MTL", lp.prelinear),
   ("S-MTL", lp.semi_prelinear),
