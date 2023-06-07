@@ -3,7 +3,7 @@ from prog import DataStore
 
 if len(sys.argv) == 1:
   ds = DataStore()
-  ds.populate(12)
+  ds.populate(10)
 
 else:
   name = sys.argv[1]

@@ -49,30 +49,45 @@ residuated_dimensions = ResiduatedSchema("residuated lattices - width and height
   ("width", lp.width),
 ])
 
-extra_properties = ResiduatedSchema("residuated lattices - extra properties", [
-  ("semi-prelinear", lp.semi_prelinear),
-  ("semi-idempotent", lp.semi_idempotent),
-  ("semi-divisible", lp.semi_divisible),
-  ("deMorgan", lp.demorgan),
-  ("Stonean", lp.stonean),
-  ("semi-G-algebra", lp.semig),
-])
-
 all_properties = ResiduatedSchema("residuated lattices - all properties", [
   ("MOD", lp.modular),
   ("DIS", lp.distributive),
   ("MTL", lp.prelinear),
+  ("S-MTL", lp.semi_prelinear),
   ("P1", lp.pi1),
-  ("P2", lp.pi2),
-  ("STR", lp.strict),
   ("WNM", lp.wnm),
   ("DIV", lp.divisible),
+  ("S-DIV", lp.semi_divisible),
   ("INV", lp.involutive),
   ("IDE", lp.idempotent),
+  ("S-IDE", lp.semi_idempotent),
+  ("DMO", lp.demorgan),
+  ("STO", lp.stonean),
+  ("BOO", lp.boolean),
+  ("IMP", lp.imp),
+])
+
+mixed_properties = ResiduatedSchema("residuated lattices - mixed properties", [
+  ("MTL", lp.prelinear),
   ("S-MTL", lp.semi_prelinear),
+  ("IDE", lp.idempotent),
+  ("S-IDE", lp.semi_idempotent),
+  ("DIV", lp.divisible),
   ("S-DIV", lp.semi_divisible),
   ("DMO", lp.demorgan),
   ("STO", lp.stonean),
-  ("S-G", lp.semig),
-  ("QCO", lp.quasicomplemented),
 ])
+
+publication_properties = ResiduatedSchema("residuated lattices - publication properties", [
+  ("MTL", lp.prelinear),
+  ("S-MTL", lp.semi_prelinear),
+  ("IDE", lp.idempotent),
+  ("S-IDE", lp.semi_idempotent),
+  ("DIV", lp.divisible),
+  ("S-DIV", lp.semi_divisible),
+  ("DMO", lp.demorgan),
+  ("STO", lp.stonean),
+  ("INV", lp.involutive),
+  ("BOO", lp.boolean),
+])
+

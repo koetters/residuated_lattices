@@ -43,6 +43,7 @@ class MultiplicationGenerator:
       self.subsemilattices.append(s)
       self.delta.append(new_elements)
       self.delta_generators.append(new_generators)
+      # self.count = 0
 
   def is_automorphic_image(self,m1,m2):
     check = AutomorphismCheck(self.lattice,m1,m2)
@@ -67,6 +68,10 @@ class MultiplicationGenerator:
     self.fill_table(mult,0,0)
 
   def fill_table(self,mult,i0,j0):
+
+    # self.count += 1
+    # weight = tuple([mult.table[x][y] for x in range(1,self.lattice.n-1) for y in range(1,x+1) if mult.table[x][y] is not None])
+    # print(f"{self.count}) {weight}")
 
     a0 = self.irreducibles[i0]
     b0 = self.irreducibles[j0]

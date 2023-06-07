@@ -198,11 +198,12 @@ def stonean(rlat):
   return True
 
 # residuated property
-def semig(rlat):
+def imp(rlat):
   n = rlat.n
   for x in range(n):
-    if rlat.neg(rlat.mult(x,x)) != rlat.neg(x):
-      return False
+    for y in range(n):
+      if rlat.arrow(x,y) != rlat.sup(rlat.neg(x),y):
+        return False
   return True
 
 # residuated property
