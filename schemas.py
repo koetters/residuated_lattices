@@ -80,3 +80,17 @@ publication_properties = ResiduatedSchema("residuated lattices - publication pro
   ("BOO", lp.boolean),
 ])
 
+tacl_properties = ResiduatedSchema("residuated lattices - tacl properties", [
+  ("MTL", lp.prelinear),
+  ("S-MTL", lp.semi_prelinear),
+  ("WS-MTL", lp.wsp),
+  ("IDE", lp.idempotent),
+  ("S-IDE", lp.semi_idempotent),
+  ("DIV", lp.divisible),
+  ("S-DIV", lp.semi_divisible),
+  ("DMO", lp.demorgan),
+  ("STO", lp.stonean),
+  ("INV", lp.involutive),
+  ("BOO", lp.boolean),
+])
+

@@ -1,5 +1,4 @@
 import itertools
-import inspect
 import importlib
 import sys
 
@@ -23,93 +22,87 @@ zero = lattice.zero
 one = lattice.one
 leq = lattice.leq
 
-# ad hoc definition for "Expression" class (should probably be defined elsewhere, and maybe is unified with the axiom class)
-class Expression:
-    def __init__(self,predicate):
-        self.predicate = predicate
-        self.params = inspect.getfullargspec(self.predicate).args
-        self.nparams = len(self.params)
+####### endomorphisms #######
 
-    def __str__(self):
-        return inspect.getsource(self.predicate)
+def check_endomorphism(f):
+
+    if not (f[one] == one and f[zero] == zero):
+        return False
+
+    for x in domain:
+        for y in domain:
+            if not (f[meet(x,y)] == meet(f[x],f[y]) and f[join(x,y)] == join(f[x],f[y]) and f[prod(x,y)] == prod(f[x],f[y]) and f[arrow(x,y)] == arrow(f[x],f[y])):
+                return False
+
+    return True
 
 # the function computes all endomorphisms of a residuated lattice
 def endomorphisms():
 
-    print("Endomorphisms:")
-
-    # a list of expressions which together say that a given function f is an endomorphism
-    expressions = [
-        Expression(lambda x,y: f(meet(x,y)) == meet(f(x),f(y))),
-        Expression(lambda x,y: f(join(x,y)) == join(f(x),f(y))),
-        Expression(lambda x,y: f(prod(x,y)) == prod(f(x),f(y))),
-        Expression(lambda x,y: f(arrow(x,y)) == arrow(f(x),f(y))),
-        Expression(lambda : f(one) == one),
-        Expression(lambda : f(zero) == zero),
-    ]
-
-    ndom = len(domain)
     result = []
-    # iterate over all transformations on the domain (this can be quite a lot!)
-    for values in itertools.product(domain,repeat=ndom):
-        satisfied = True
-        fdir = {x:y for x,y in zip(domain,values)}
-        f = lambda x:fdir[x]
-        # check if the transformation f is an endomorphism, by checking for each preservation property ...
-        for exp in expressions:
-            # ... whether it holds for all values of x and y (or whatever variables are applicable)
-            for args in itertools.product(domain,repeat=exp.nparams):
-                res = exp.predicate(*args)
-                if not res:
-                    satisfied = False
-                    break
-            if not satisfied:
-                break
-        # if all preservation properties are satisfied, include f in the list of endomorphisms
-        if satisfied:
-            result.append([(a,fdir[a]) for a in domain])
+    # generate all possible choices of f (this can be quite a lot!)
+    for values in itertools.product(domain,repeat=len(domain)):
+        f = {x:y for x,y in zip(domain,values)}
+        if check_endomorphism(f):
+            result.append([(a,f[a]) for a in domain])
     # return the list of endomorphisms
     return result
+
+####### (f,g)-derivations #######
+
+def check_derivation(d,f,g):
+
+    for x in domain:
+        for y in domain:
+            if not d[prod(x,y)] == join(prod(d[x],f[y]),prod(g[x],d[y])):
+                return False
+    return True
 
 # the function computes all (f,g)-derivations of a residuated lattice,
 # for given endomorphisms f and g
 def derivations(f,g):
 
-    fdir = dict(f)
-    gdir = dict(g)
-    f = lambda x:fdir[x]
-    g = lambda x:gdir[x]
+    f = dict(f)
+    g = dict(g)
 
-    expressions = [
-        # the definition of (f,g)-derivation
-        Expression(lambda x,y: d(prod(x,y))==join(prod(d(x),f(y)),prod(g(x),d(y)))),
-    ]
-
-    ndom = len(domain)
     result = []
-    # iterate over all transformations on the domain (this can be quite a lot!)
-    for values in itertools.product(domain,repeat=ndom):
-        satisfied = True
-        ddir = {x:y for x,y in zip(domain,values)}
-        d = lambda x:ddir[x]
-        # check if the transformation d is an (f,g)-derivation ...
-        for exp in expressions:
-            # ... by checking if the definition holds for all values of x and y
-            for args in itertools.product(domain,repeat=exp.nparams):
-                res = exp.predicate(*args)
-                if not res:
-                    satisfied = False
-                    break
-            if not satisfied:
-                break
-        # if so, include d in the list of (f,g)-derivations
-        if satisfied:
-            print(str([(a,ddir[a]) for a in domain]))
-            result.append([(a,ddir[a]) for a in domain])
+    # generate all possible choices of d (this can be quite a lot!)
+    for values in itertools.product(domain,repeat=len(domain)):
+        d = {x:y for x,y in zip(domain,values)}
+        # if d is an (f,g)-derivation, append it to the list
+        if check_derivation(d,f,g):
+            result.append([(a,d[a]) for a in domain])
     # return the list of (f,g)-derivations
     return result
 
+####### implicative (f,g)-derivations #######
+
+def check_implicative_derivation(d,f,g):
+
+    for x in domain:
+        for y in domain:
+            if not d[arrow(x,y)] == join(arrow(d[x],f[y]),arrow(g[x],d[y])):
+                return False
+    return True
+
+def implicative_derivations(f,g):
+
+    f = dict(f)
+    g = dict(g)
+
+    result = []
+    # generate all possible choices of d (this can be quite a lot!)
+    for values in itertools.product(domain,repeat=len(domain)):
+        d = {x:y for x,y in zip(domain,values)}
+        # if d is an implicative (f,g)-derivation, append it to the list
+        if check_implicative_derivation(d,f,g):
+            result.append([(a,d[a]) for a in domain])
+    # return the list of (f,g)-derivations
+    return result
+
+
 # compute all endomorphisms, ...
+print("Endomorphisms:")
 endos = endomorphisms()
 # ... list them on the screen, ...
 for i,f in enumerate(endos):
@@ -147,4 +140,13 @@ dlist = derivations(f,g)
 for i,d in enumerate(dlist):
     print(str(i+1)+") "+str(d))
 
+print("implicative (f,g)-derivations:")
+dlist = implicative_derivations(f,g)
+for i,d in enumerate(dlist):
+    print(str(i+1)+") "+str(d))
+
+print("implicative (g,f)-derivations:")
+dlist = implicative_derivations(g,f)
+for i,d in enumerate(dlist):
+    print(str(i+1)+") "+str(d))
 

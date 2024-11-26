@@ -164,6 +164,15 @@ def semi_prelinear(rlat):
   return True
 
 # residuated property
+def wsp(rlat):
+  n = rlat.n
+  for x in range(n):
+    for y in range(n):
+      if rlat.neg(rlat.sup(rlat.arrow(rlat.neg(x),rlat.neg(y)),rlat.arrow(rlat.neg(y),rlat.neg(x)))) != 0:
+        return False
+  return True
+
+# residuated property
 def semi_idempotent(rlat):
   n = rlat.n
   for x in range(n):
