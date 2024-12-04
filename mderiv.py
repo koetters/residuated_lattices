@@ -2,13 +2,11 @@ import itertools
 import importlib
 import sys
 
-# Check if the user provides a residuated lattice
 if len(sys.argv) < 2:
     print("Missing parameter")
-    print("Usage: python deriv.py <module_name>")
+    print("Usage: python mderiv.py <module_name>")
     exit(0)
 
-# Load the residuated lattice
 module_name = sys.argv[1]
 module = importlib.import_module(module_name)
 lattice = module.lattice
@@ -26,14 +24,16 @@ leq = lattice.leq
 
 def check_endomorphism(f):
 
-    if not (f[one] == one and f[zero] == zero):
-        return False
-
     for x in domain:
         for y in domain:
-            if not (f[meet(x,y)] == meet(f[x],f[y]) and f[join(x,y)] == join(f[x],f[y]) and f[prod(x,y)] == prod(f[x],f[y]) and f[arrow(x,y)] == arrow(f[x],f[y])):
+            if not ( {f[z] for z in meet(x,y)} <= meet(f[x],f[y]) ):
                 return False
-
+            if not ( {f[z] for z in join(x,y)} <= join(f[x],f[y]) ):
+                return False
+            if f[prod(x,y)] != prod(f[x],f[y]):
+                return False
+            if f[arrow(x,y)] != arrow(f[x],f[y]):
+               return False
     return True
 
 # the function computes all endomorphisms of a residuated lattice
@@ -50,17 +50,50 @@ def endomorphisms():
 
 ####### (f,g)-derivations #######
 
-def check_derivation(d,f,g):
-
+def check_derivation(d,f,g,lookup):
     for x in domain:
         for y in domain:
-            if not d[prod(x,y)] == join(prod(d[x],f[y]),prod(g[x],d[y])):
+            if not ({d[z] for z in meet(x,y)} <= lookup[(d[x],f[y],f[x],d[y])]):
                 return False
+
     return True
 
 # the function computes all (f,g)-derivations of a residuated lattice,
 # for given endomorphisms f and g
+# note: definition of multi-supremum between sets: see e.g. article "The Prime Filter Theorem for Multilattices"
+# note: definition of (f,g)-derivation via multi-supremum: where is this in the literature? is the definition wrong?
 def derivations(f,g):
+
+    f = dict(f)
+    g = dict(g)
+
+    lookup = {}
+    for r in domain:
+        for s in domain:
+            for t in domain:
+                for u in domain:
+                    lookup[(r,s,t,u)] = set().union(*(join(x,y) for x in meet(r,s) for y in meet(t,u)))
+
+    result = []
+    # generate all possible choices of d (this can be quite a lot!)
+    for values in itertools.product(domain,repeat=len(domain)):
+        d = {x:y for x,y in zip(domain,values)}
+        # if d is an (f,g)-derivation, append it to the list
+        if check_derivation(d,f,g,lookup):
+            result.append([(a,d[a]) for a in domain])
+    # return the list of (f,g)-derivations
+    return result
+
+####### (f,g)-derivations (using the product) #######
+# note: definition from article "(f,g)-derivation in residuated multilattices"
+def check_derivation2(d,f,g):
+    for x in domain:
+        for y in domain:
+            if not d[prod(x,y)] in join(prod(d[x],f[y]),prod(g[x],d[y])):
+                return False
+    return True
+
+def derivations2(f,g):
 
     f = dict(f)
     g = dict(g)
@@ -70,7 +103,7 @@ def derivations(f,g):
     for values in itertools.product(domain,repeat=len(domain)):
         d = {x:y for x,y in zip(domain,values)}
         # if d is an (f,g)-derivation, append it to the list
-        if check_derivation(d,f,g):
+        if check_derivation2(d,f,g):
             result.append([(a,d[a]) for a in domain])
     # return the list of (f,g)-derivations
     return result
@@ -78,10 +111,9 @@ def derivations(f,g):
 ####### implicative (f,g)-derivations #######
 
 def check_implicative_derivation(d,f,g):
-
     for x in domain:
         for y in domain:
-            if not d[arrow(x,y)] == join(arrow(d[x],f[y]),arrow(g[x],d[y])):
+            if not d[arrow(x,y)] in join(arrow(d[x],f[y]),arrow(g[x],d[y])):
                 return False
     return True
 
@@ -114,7 +146,7 @@ j = None
 # ... and ask the user to select f and g from that list
 while True:
     iplus1 = int(input("Press number to select f:"))
-    i = iplus1-1
+    i = iplus1 - 1
     if 0<=i and i<len(domain):
         break
     else:
@@ -125,7 +157,7 @@ print("f="+str(f))
 
 while True:
     jplus1 = int(input("Press number to select g:"))
-    j = jplus1-1
+    j = jplus1 - 1
     if 0<=j and j<len(domain):
         break
     else:
@@ -135,8 +167,13 @@ g = endos[j]
 print("g="+str(g))
 
 # Now that f and g have been chosen, compute the (f,g)-derivations
-print("(f,g)-derivations:")
+print("(f,g)-derivations (defined using multi-infimum; wrong definition?):")
 dlist = derivations(f,g)
+for i,d in enumerate(dlist):
+    print(str(i+1)+") "+str(d))
+
+print("(f,g)-derivations (defined using product):")
+dlist = derivations2(f,g)
 for i,d in enumerate(dlist):
     print(str(i+1)+") "+str(d))
 
