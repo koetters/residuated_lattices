@@ -4,7 +4,7 @@ import sys
 
 if len(sys.argv) < 2:
     print("Missing parameter")
-    print("Usage: python mcheck.py <module_name>")
+    print("Usage: python check.py <module_name>")
     exit(0)
 
 module_name = sys.argv[1]
@@ -65,7 +65,7 @@ def check():
     return True
 
 if check():
-    print("Success: This is a multilattice")
+    print("Success: This is a residuated multilattice")
 else:
-    print("Failure: This is not a multilattice")
+    print("Failure: This is not a residuated multilattice")
 

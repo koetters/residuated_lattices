@@ -115,7 +115,7 @@ j = None
 while True:
     iplus1 = int(input("Press number to select f:"))
     i = iplus1-1
-    if 0<=i and i<len(domain):
+    if 0<=i and i<len(endos):
         break
     else:
         print("Number out of range")
@@ -126,7 +126,7 @@ print("f="+str(f))
 while True:
     jplus1 = int(input("Press number to select g:"))
     j = jplus1-1
-    if 0<=j and j<len(domain):
+    if 0<=j and j<len(endos):
         break
     else:
         print("Number out of range")
