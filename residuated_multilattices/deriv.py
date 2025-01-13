@@ -139,13 +139,13 @@ dlist = derivations(f,g)
 for i,d in enumerate(dlist):
     print(str(i+1)+") "+str(d))
 
-print("implicative (f,g)-derivations:")
-dlist = implicative_derivations(f,g)
-for i,d in enumerate(dlist):
-    print(str(i+1)+") "+str(d))
+# print("implicative (f,g)-derivations:")
+# dlist = implicative_derivations(f,g)
+# for i,d in enumerate(dlist):
+#     print(str(i+1)+") "+str(d))
 
-print("implicative (g,f)-derivations:")
-dlist = implicative_derivations(g,f)
-for i,d in enumerate(dlist):
-    print(str(i+1)+") "+str(d))
+# print("implicative (g,f)-derivations:")
+# dlist = implicative_derivations(g,f)
+# for i,d in enumerate(dlist):
+#     print(str(i+1)+") "+str(d))
 

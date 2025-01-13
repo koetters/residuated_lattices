@@ -1,0 +1,150 @@
+\documentclass{article}
+\usepackage{amssymb,amsmath}
+\newtheorem{definition}{Definition}
+\begin{document}
+\title{Specification}
+\author{}
+\date{}
+\maketitle
+This document provides the definitions of multilattices, residuated lattices and residuated multilattices, and the respective notions of homomorphisms and
+derivations, that are implemented by the program. As detailed in Sect.~\ref{rela0}, we consider residuated lattices to be bounded and commutative (with the
+top element being the neutral element w.r.t. multiplication). The residuated multilattices in Sect.~\ref{remu0} are adapted from~\cite{CCG14}, but unlike there,
+we consider them to be bounded (to match the previous definition of residuated lattices). The notion of multilattices in Sect.~\ref{mult0} is also taken
+from~\cite{CCG14}. The notion of derivations on multilattices in Sect.~\ref{mult0} is based on unpublished work (as of December 2024)
+by Darline Laure Keubeng Yemene. The notions of $(f,g)$-multiplicative and $(f,g)$-implicative derivations on residuated lattices,
+in Sect.~\ref{rela0}, are obtained from~\cite{YFAL20}. The respective notion of $(f,g)$-multiplicative derivations on residuated multilattices,
+in Sect.~\ref{remu0}, has been introduced in~\cite{YFL22}, there simply called $(f,g)$-derivation; whereas the notion of $(f,g)$-implicative derivations
+on residuated multilattices, in Sect.~\ref{remu0}, should be considered tentative, having not yet been sufficiently explored.
+
+\section{Multilattices}
+\label{mult0}
+Let $(P,\leq)$ be a poset. For any $X \subseteq P$, the elements of
+\begin{align}
+X^{\uparrow} &:= \{p \in P \mid p \geq x \text{ for all } x \in X\} \;,\\
+X^{\downarrow} &:= \{p \in P \mid p \leq x \text{ for all } x \in X\}
+\end{align}
+are the \emph{upper bounds} and \emph{lower bounds} of $X$, respectively. For any $x,y \in P$, a minimal element of $\{x,y\}^{\uparrow}$
+is a \emph{multisupremum} of $x$ and $y$, whereas a maximal element of $\{x,y\}^{\downarrow}$ is a \emph{multiinfimum} of $x$ and $y$. We use $x \sqcup y$ and
+$x \sqcap y$ to denote the set of all multisuprema and multiinfima of $x$ and $y$, respectively.
+
+\begin{definition}[Ordered Multilattice]
+A poset $(M,\leq)$ is an \emph{ordered multilattice} if, for all $x,y \in M$, every element of $\{x,y\}^{\uparrow}$ lies above an element of $x \sqcup y$,
+and every element of $\{x,y\}^{\downarrow}$ lies below an element of $x \sqcap y$.
+\end{definition}
+It should be noted that every finite poset $(M,\leq)$ is an ordered multilattice.
+
+\begin{definition}[Multilattice]
+The algebra $(M,\sqcup,\sqcap)$ associated with an ordered multilattice $(M,\leq)$ is a \emph{multilattice}.
+\end{definition}
+
+\begin{definition}[Bounded Multilattice]
+The algebra $(M,\sqcup,\sqcap,0,1)$ associated with an ordered multilattice $(M,\leq)$ with least element $0$ and greatest element $1$
+is a \emph{bounded multilattice}.
+\end{definition}
+
+\begin{definition}[Homomorphism]
+A \emph{homomorphism} $f:(M_1,\sqcup,\sqcap) \rightarrow (M_2,\sqcup,\sqcap)$ of multilattices is a function $f:M_1 \rightarrow M_2$ which satisfies
+$f(x \sqcup y) \subseteq f(x) \sqcup f(y)$ and $f(x \sqcap y) \subseteq f(x) \sqcap f(y)$ for all $x,y \in M_1$.
+\end{definition}
+
+\begin{definition}[Derivation]
+Let $(M,\sqcup,\sqcap)$ be a multilattice. Moreover, let $f$ and $g$ be endomorphisms of $(M,\sqcup,\sqcap)$.
+An \emph{$(f,g)$-derivation} of $(M,\sqcup,\sqcap)$ is a function $d:M \rightarrow M$ which satisfies
+\begin{align}
+d(x \sqcap y) \subseteq (d(x) \sqcap f(y)) \sqcup (g(x) \sqcap d(y))
+\end{align}
+for all $x,y \in M$.
+\end{definition}
+
+\section{Residuated Lattices}
+\label{rela0}
+\begin{definition}[Residuated Lattice~\cite{Pic21}]
+A \emph{residuated lattice} is an algebra $(L,\vee,\wedge,\odot,\rightarrow,0,1)$ such that $(L,\vee,\wedge,0,1)$
+is a bounded lattice, $(L,\odot,1)$ is a commutative monoid, and $\rightarrow$ is a binary operation satisfying
+\begin{align}
+x \odot z \leq y \Leftrightarrow x \leq z \rightarrow y
+\end{align}
+for all $x,y,z \in L$.
+\end{definition}
+
+\begin{definition}[Homomorphism]
+A \emph{homomorphism} $f:(L_1,\vee,\wedge,\odot,\rightarrow,0,1) \rightarrow (L_2,\vee,\wedge,\odot,\rightarrow,0,1)$ of residuated lattices
+is a function $f:L_1 \rightarrow L_2$ which satisfies
+\begin{align}
+f(x \vee y) &= f(x) \vee f(y) \\
+f(x \wedge y) &= f(x) \wedge f(y) \\
+f(x \odot y) &= f(x) \odot f(y) \\
+f(x \rightarrow y) &= f(x) \rightarrow f(y) \\
+f(0) &= 0 \\
+f(1) &= 1
+\end{align}
+for all $x,y \in L_1$.
+\end{definition}
+
+\begin{definition}[Multiplicative Derivation~\cite{YFAL20}]
+Let $\mathcal{L} := (L,\vee,\wedge,\odot,\rightarrow,0,1)$ be a residuated lattice. Moreover, let $f$ and $g$ be endomorphisms of $\mathcal{L}$.
+An \emph{$(f,g)$-multiplicative derivation} of $\mathcal{L}$ is a function $d:L \rightarrow L$ which satisfies
+\begin{align}
+d(x \odot y) = (d(x) \odot f(y)) \vee (g(x) \odot d(y))
+\end{align}
+for all $x,y \in L$.
+\end{definition}
+
+\begin{definition}[Implicative Derivation~\cite{YFAL20}]
+Let $\mathcal{L} := (L,\vee,\wedge,\odot,\rightarrow,0,1)$ be a residuated lattice. Moreover, let $f$ and $g$ be endomorphisms of $\mathcal{L}$.
+An \emph{$(f,g)$-implicative derivation} of $\mathcal{L}$ is a function $d:L \rightarrow L$ which satisfies
+\begin{align}
+d(x \rightarrow y) = (d(x) \rightarrow f(y)) \vee (g(x) \rightarrow d(y))
+\end{align}
+for all $x,y \in L$.
+\end{definition}
+
+\section{Residuated Multilattices}
+\label{remu0}
+\begin{definition}[Residuated Multilattice]
+A \emph{residuated multilattice} is an algebra $(M,\sqcup,\sqcap,\odot,\rightarrow,0,1)$ such that $(M,\sqcup,\sqcap,0,1)$ is a bounded multilattice,
+$(M,\odot,1)$ is a commutative monoid, and $\rightarrow$ is a binary operation satisfying
+\begin{align}
+x \odot z \leq y \Leftrightarrow x \leq z \rightarrow y
+\end{align}
+for all $x,y,z \in M$.
+\end{definition}
+
+\begin{definition}[Homomorphism]
+A \emph{homomorphism} of $f:(M_1,\sqcup,\sqcap,\odot,\rightarrow,0,1) \rightarrow (M_2,\sqcup,\sqcap,\odot,\rightarrow,0,1)$ of residuated multilattices
+is a function $f:M_1 \rightarrow M_2$ which satisfies
+\begin{align}
+f(x \sqcap y) &\subseteq f(x) \sqcap f(y) \\
+f(x \sqcup y) &\subseteq f(x) \sqcup f(y) \\
+f(x \odot y) &= f(x) \odot f(y) \\
+f(x \rightarrow y) &= f(x) \rightarrow f(y) \\
+f(0) &= 0 \\
+f(1) &= 1
+\end{align}
+for all $x,y \in M_1$.
+\end{definition}
+
+\begin{definition}[Multiplicative Derivation~\cite{YFL22}]
+Let $\mathcal{M} := (M,\sqcup,\sqcap,\odot,\rightarrow,0,1)$ be a residuated multilattice. Moreover, let $f$ and $g$ be endomorphisms of $\mathcal{M}$.
+An {$(f,g)$-multiplicative derivation} of $\mathcal{M}$ is a function $d:M \rightarrow M$ which satisfies
+\begin{align}
+d(x \odot y) \in (d(x) \odot f(y)) \sqcup (g(x) \odot d(y))
+\end{align}
+for all $x,y \in M$.
+\end{definition}
+
+\begin{definition}[Implicative Derivation]
+Let $(M,\sqcup,\sqcap,\odot,\rightarrow,0,1)$ be a residuated multilattice. Moreover, let $f$ and $g$ be endomorphisms of $\mathcal{M}$.
+An \emph{$(f,g)$-implicative derivation} of $\mathcal{M}$ is a function $d:M \rightarrow M$ which satisfies
+\begin{align}
+d(x \rightarrow y) \in (d(x) \rightarrow f(y)) \sqcup (g(x) \rightarrow d(y))
+\end{align}
+for all $x,y \in M$.
+\end{definition}
+
+\section*{Acknowledgements}
+Thanks to Darline for feedback and error checking.
+
+\bibliographystyle{plain}
+\bibliography{specification}
+\end{document}
